@@ -1,4 +1,4 @@
-    title	"LCD"
+title	"LCD"
     list	p=16f84A
     radix	hex
     include "p16f84a.inc"
@@ -14,55 +14,69 @@ CURSOR_POS  EQU	d'18' ; Register stores detail about the cursor's current positi
 		      ; Since there are 16 columns and 2 rows, such an encoding is guaranteed to span all cells on the LCD.
 CHAR_CODE   EQU	d'19'
 
-FLAG_REG    EQU d'20' ; Register containing some flags to be used within the program. Structure: [-,-,-,-,-,-,-,Main Menu Flag]
+FLAG_REG    EQU d'20' ; Register containing some flags to be used within the program. Structure: [-,-,-,-,-,CONFIRM_STATUS,MODE_BIT2,MODE_BIT1] within the program. Structure: [-,-,-,-,-,-,-,Main Menu Flag]
 
 ADDITIONAL	EQU d'21' ; "bits [2:0] contains the position of the * in the second scene"
                       ; "00->6  -- 01->9  -- 10 ->12" 
-
 LEFT_BTN    EQU	d'4'
 RIGHT_BTN   EQU	d'5'
 UP_DOWN_BTN EQU	d'6'
 CONFIRM_BTN EQU	d'7'
+LTR_BOX   EQU b'11011011'
  
-LTR_A	EQU b'01000001'
-LTR_B	EQU b'01000010'	
-LTR_C	EQU b'01000011' 
-LTR_D	EQU b'01000100'
-LTR_E	EQU b'01000101'
-LTR_F	EQU b'01000110'
-LTR_G	EQU b'01000111'	
-LTR_H	EQU b'01001000'
-LTR_I	EQU b'01001001'	
-LTR_J	EQU b'01001010'	
-LTR_K	EQU b'01001011'
-LTR_L	EQU b'01001100'
-LTR_M	EQU b'01001101'	
-LTR_N	EQU b'01001110'
-LTR_O	EQU b'01001111'	
-LTR_P	EQU b'01010000'	
-LTR_Q	EQU b'01010001'	
-LTR_R	EQU b'01010010'
-LTR_S	EQU b'01010011'		
-LTR_T	EQU b'01010100'		
-LTR_U	EQU b'01010101'		
-LTR_V	EQU b'01010110'		
-LTR_W	EQU b'01010111'	
-LTR_X	EQU b'01011000'		
-LTR_Y	EQU b'01011001'
-LTR_Z	EQU b'01011010'
-LTR_0	EQU b'00110000'
-LTR_1	EQU b'00110000'
-LTR_2	EQU b'00110000'
-LTR_3	EQU b'00110000'
-LTR_4	EQU b'00110000'
-LTR_5	EQU b'00110000'
-LTR_6	EQU b'00110000'
-LTR_7	EQU b'00110000'
-LTR_8	EQU b'00110000'
-LTR_9	EQU b'00110000'
-LTR_ASTERISK	EQU b'00101010'
-LTR_SPACE   EQU	b'10100000'
+LTR_A EQU b'01000001'
+LTR_B EQU b'01000010' 
+LTR_C EQU b'01000011' 
+LTR_D EQU b'01000100'
+LTR_E EQU b'01000101'
+LTR_F EQU b'01000110'
+LTR_G EQU b'01000111' 
+LTR_H EQU b'01001000'
+LTR_I EQU b'01001001' 
+LTR_J EQU b'01001010' 
+LTR_K EQU b'01001011'
+LTR_L EQU b'01001100'
+LTR_M EQU b'01001101' 
+LTR_N EQU b'01001110'
+LTR_O EQU b'01001111' 
+LTR_P EQU b'01010000' 
+LTR_Q EQU b'01010001' 
+LTR_R EQU b'01010010'
+LTR_S EQU b'01010011'  
+LTR_T EQU b'01010100'  
+LTR_U EQU b'01010101'  
+LTR_V EQU b'01010110'  
+LTR_W EQU b'01010111' 
+LTR_X EQU b'01011000'  
+LTR_Y EQU b'01011001'
+LTR_Z EQU b'01011010'
+LTR_0 EQU b'00110000'
+LTR_1 EQU b'00110001'
+LTR_2 EQU b'00110010'
+LTR_3 EQU b'00110011'
+LTR_4 EQU b'00110100'
+LTR_5 EQU b'00110101'
+LTR_6 EQU b'00110110'
+LTR_7 EQU b'00110111'
+LTR_8 EQU b'00111000'
+LTR_9 EQU b'00111001'
+LTR_ASTERISK EQU b'00101010'
+LTR_SPACE   EQU b'10100000'
 	
+CELL_11 EQU d'52'
+CELL_12 EQU d'53'
+CELL_13 EQU d'54'
+CELL_14 EQU d'55'
+CELL_15 EQU d'56'
+CELL_16 EQU d'57'
+
+CELL_21 EQU d'58'
+CELL_22 EQU d'59'
+CELL_23 EQU d'60'
+CELL_24 EQU d'61'
+CELL_25 EQU d'62'
+CELL_26 EQU d'63'   
+
 	ORG	0x0
 	GOTO	MAIN
 	ORG	0x04
@@ -78,9 +92,6 @@ MAIN	CLRF	PORTA
 	
 	CLRF	TRISA	    ; Set all pins of PORTA as outputs
 	BCF	STATUS,RP0
-	
-	MOVLW	b'10001000' ; Properly setup the interrupts. Only GIE and RBIE should be set.
-	MOVWF	INTCON
 	
 
 INDIRECT	MOVLW	d'11'
@@ -131,50 +142,146 @@ INIT	CALL 	DELAYFMS
 	CALL 	ET
 
 			
-WELCOME_SCREEN	MOVLW	b'00000100' ; Move the cursor to 0x04
-	MOVWF	CURSOR_POS
-
-	CALL	PRINT_M
-	CALL	PRINT_E
-	CALL	PRINT_M
-	CALL	PRINT_O
-	CALL	PRINT_R
-	CALL	PRINT_Y
+WELCOME_SCREEN MOVLW b'00000010' ; Move the cursor to 0x04
+	MOVWF CURSOR_POS
 	
-	MOVLW	b'00001010' ; Move the cursor to 0x0A (Column 10)
-	MOVWF	CURSOR_POS
+	CALL PRINT_M
+	CALL PRINT_E
+	CALL PRINT_M
+	CALL PRINT_O
+	CALL PRINT_R
+	CALL PRINT_Y
 	
-	CALL	PRINT_G
-	CALL	PRINT_A
-	CALL	PRINT_M
-	CALL	PRINT_E
+	MOVLW b'00001010' ; Move the cursor to 0x0C (Column 10)
+	MOVWF CURSOR_POS
 	
-	CALL	DELAYS	; TODO: Implement some longer delay (4/5 seconds maybe?)
+	CALL PRINT_G
+	CALL PRINT_A
+	CALL PRINT_M
+	CALL PRINT_E
+	
+	MOVLW b'00000000' ; "move the cursor to 0x00"
+	MOVWF CURSOR_POS
+	
+	CALL DELAYS ; TODO: Implement some longer delay (4 or  seconds maybe?)
 
 MAIN_MENU   CALL    CLEAR_SCREEN
-	CALL	PRINT_M
-	CALL	PRINT_O
-	CALL	PRINT_D
-	CALL	PRINT_E
+	CLRF	FLAG_REG
+	MOVLW	b'10001000' ; Properly setup the interrupts. Only GIE and RBIE should be set.
+	MOVWF	INTCON
+	CALL PRINT_M
+	CALL PRINT_O
+	CALL PRINT_D
+	CALL PRINT_E
 	
-	MOVLW	d'2'   ; Move the cursor two units to the right
-	ADDWF	CURSOR_POS, 1
+	MOVLW d'2'   ; Move the cursor two units to the right
+	ADDWF CURSOR_POS, 1
 	
-	CALL	PRINT_ASTERISK
-	CALL	PRINT_1
+	CALL PRINT_ASTERISK
+	CALL PRINT_1
 	
-	MOVLW	d'2'   ; Move the cursor two units to the right
-	ADDWF	CURSOR_POS, 1
+	MOVLW d'2'   ; Move the cursor two units to the right
+	ADDWF CURSOR_POS, 1
 	
-	CALL	PRINT_2
+	CALL PRINT_2
 	
-	MOVLW	d'2'   ; Move the cursor two units to the right
-	ADDWF	CURSOR_POS, 1
+	MOVLW d'2'   ; Move the cursor two units to the right
+	ADDWF CURSOR_POS, 1
 	
-	CALL	PRINT_3
-	
+	CALL PRINT_3
+	MOVLW	b'00000111'
+	MOVWF	CURSOR_POS
 
-INF	GOTO	INF
+INF BTFSC   FLAG_REG,1
+    GOTO  MODE2_OR_3
+    GOTO  MODE1_OR_INF
+
+MODE2_OR_3 BTFSC    FLAG_REG,0
+    GOTO  MODE3
+    GOTO  MODE2
+
+MODE1_OR_INF BTFSC  FLAG_REG,0
+    GOTO  MODE1
+    GOTO  INF
+
+
+MODE1 CALL  SETUP
+LOOP_M1 GOTO	LOOP_M1
+
+
+MODE2 CALL  SETUP
+LOOP_M2	GOTO	LOOP_M2
+
+
+MODE3 CALL  SETUP
+LOOP_M3 GOTO    LOOP_M3
+
+SETUP	MOVLW	b'00000'
+	MOVWF	PORTA
+	CALL	ET
+	MOVLW	b'00000'
+	MOVWF	PORTA
+
+	MOVLW	b'01110'
+	MOVWF	PORTA
+	CALL	ET
+	MOVLW	b'00000'
+	MOVWF	PORTA
+
+	CALL	CLEAR_SCREEN	
+	CALL  POPULATE_TABLE
+    CALL  HIDE_TABLE
+
+	MOVLW	b'00000000'
+	RETURN
+	
+POPULATE_TABLE MOVLW	LTR_C
+    MOVWF  CELL_11
+    MOVLW  LTR_A
+    MOVWF  CELL_12
+    MOVLW  LTR_E
+    MOVWF  CELL_13
+    MOVLW  LTR_F
+    MOVWF  CELL_14
+    MOVLW  LTR_B
+    MOVWF  CELL_15
+    MOVLW  LTR_D
+    MOVWF  CELL_16
+    MOVLW  LTR_B
+    MOVWF  CELL_21
+    MOVLW  LTR_D
+    MOVWF  CELL_22
+    MOVLW  LTR_F
+    MOVWF  CELL_23
+    MOVLW  LTR_C
+    MOVWF  CELL_24
+    MOVLW  LTR_A
+    MOVWF  CELL_25
+    MOVLW  LTR_E
+    MOVWF  CELL_26
+    RETURN 
+
+
+HIDE_TABLE MOVLW    b'00000000' ; Move the cursor to 0x00
+    MOVWF  CURSOR_POS
+
+    CALL  PRINT_BOX
+    CALL  PRINT_BOX
+    CALL  PRINT_BOX
+    CALL  PRINT_BOX
+    CALL  PRINT_BOX
+    CALL  PRINT_BOX
+
+    MOVLW  b'00010000' ; Move cursor to 0x40
+    MOVWF  CURSOR_POS
+
+    CALL  PRINT_BOX
+    CALL  PRINT_BOX
+    CALL  PRINT_BOX
+    CALL  PRINT_BOX
+    CALL  PRINT_BOX
+    CALL  PRINT_BOX
+    RETURN
 	
 	
 ; ****************************************************************	    LCD INTERFACING	    ***********************************************************************
@@ -263,7 +370,7 @@ PRINT_R	MOVLW	LTR_R
 	CALL WRITE_CHAR
 	RETURN
 	
-PRINT_Y	MOVLW	LTR_M
+PRINT_Y	MOVLW	LTR_Y
 	CALL WRITE_CHAR
 	RETURN
 	
@@ -274,6 +381,10 @@ PRINT_ASTERISK	MOVLW	LTR_ASTERISK
 PRINT_SPACE	MOVLW	LTR_SPACE        ; "print space in order to erase the char"
 	CALL WRITE_CHAR
 	RETURN
+	
+PRINT_BOX MOVLW	LTR_BOX
+    CALL  WRITE_CHAR
+    RETURN
 	
 PRINT_1	MOVLW	LTR_1
 	CALL WRITE_CHAR
@@ -292,20 +403,96 @@ PRINT_3	MOVLW	LTR_3
 ; NOTE: Should all of these be BTFSS?
 	
 RB4_INT	CALL	DELAYFMS ;  Debounce
-	BTFSC	PORTB,LEFT_BTN
-	NOP ; TODO: Implement functionality
-	BTFSC	PORTB,RIGHT_BTN
-	NOP ; TODO: Implement functionality
-	BTFSC	PORTB,UP_DOWN_BTN
+	BTFSS	PORTB,LEFT_BTN
+	CALL	HANDLE_LEFT
+	
+	BTFSS	PORTB,RIGHT_BTN
+	CALL	HANDLE_RIGHT
+	
+	BTFSS	PORTB,UP_DOWN_BTN
 	CALL	HANDLE_UP_DOWN
-	BTFSC	PORTB,CONFIRM_BTN
-	NOP ; TODO: Implement functionality
+	
+	BTFSS	PORTB,CONFIRM_BTN
+	CALL	HANDLE_CONFIRM
+	
 	BCF INTCON, 0
 	RETFIE
-	
+
+HANDLE_LEFT	;MOVLW	b'00000000'
+	;XORWF	FLAG_REG, 0	; Check if you are in the Main Menu (i.e. Check if the last 2 bits of the FLAG_REG are 0s)
+	;BTFSC	STATUS, 2
+	BTFSC	FLAG_REG,0	
+	GOTO	LABEL_L
+
+	BTFSC	FLAG_REG,1
+	GOTO	LABEL_L
+
+	CALL	MOVE_AST_LEFT
+	RETURN	
+LABEL_L	CALL	IN_GAME_LEFT
+	RETURN
+
+IN_GAME_LEFT	DECFSZ	CURSOR_POS,F	; "Check if the cursor is in the left most position in order to send it to the right most one" 
+	RETURN	; "if cursor is not at 0 just decrement"
+	MOVLW	b'00001111' ; "move to right most position"
+	MOVWF	CURSOR_POS
+	RETURN	
+
+HANDLE_RIGHT	;MOVLW	b'00000000'
+	;XORWF	FLAG_REG, 0	; Check if you are in the Main Menu (i.e. Check if the last 2 bits of the FLAG_REG are 0s)
+	;BTFSC	STATUS, 2
+	BTFSC	FLAG_REG,0	
+	GOTO	LABEL_R
+
+	BTFSC	FLAG_REG,1
+	GOTO	LABEL_R
+
+	CALL	MOVE_AST_RIGHT
+	RETURN	
+LABEL_R	CALL	IN_GAME_RIGHT
+	RETURN
+
+IN_GAME_RIGHT	MOVLW	b'00001111'	
+	SUBWF	CURSOR_POS,F	; "Check if the cursor is in the right most position to send it to the left most one" 
+	INCFSZ	W,F
+	GOTO U11	; if cursor is NOT AT 1111 just INCcrement
+	INCF	CURSOR_POS 
+	RETURN
+U11	CLRF	CURSOR_POS
+	RETURN
+
+
+HANDLE_CONFIRM	; Unless you're in the Main Menu, toggle the value of the CONFIRM_STATUS flag (Bit 2 on FLAG_REG) and reveal the character underneath, otherwise go into desired mode.
+	MOVLW	b'00000000'
+	XORWF	FLAG_REG, 0	; Check if you are in the Main Menu (i.e. Check if the last 2 bits of the FLAG_REG are 0s)
+	BTFSC	STATUS, 2
+	GOTO	MAIN_MENU_CONFIRMATION
+	MOVLW	b'00010000'
+	RETURN	; TODO: Implement Card opening functionality
+
+
+MAIN_MENU_CONFIRMATION	MOVLW	b'00000110'; Check if the Mode selected is Mode 1(i.e. cursor is at pos 6)
+	XORWF	CURSOR_POS, 0
+	BTFSC	STATUS, 2
+	GOTO	SKIP_MODE1_CONFIRMATION
+	BSF		FLAG_REG, 0
+	RETURN
+SKIP_MODE1_CONFIRMATION	MOVLW	b'00001001'; Check if the Mode selected is Mode 2(i.e. cursor is at pos 9)
+	XORWF	CURSOR_POS, 0
+	BTFSC	STATUS, 2
+	GOTO	SKIP_MODE2_CONFIRMATION
+	BSF		FLAG_REG, 1
+	RETURN
+SKIP_MODE2_CONFIRMATION	BSF	FLAG_REG, 0	; Otherwise, Mode is 3 select so set the first two bits of the FLAG_REG
+	BSF		FLAG_REG, 1
+	RETURN
+
+
 HANDLE_UP_DOWN	; Unless you're in the Main Menu, toggle the row that the cursor is at
-	BTFSC	FLAG_REG, 0 ; Check if the Main Menu flag is set, skip accordingly
-	GOTO	SKIP_HANDLE_UP_DOWN
+	MOVLW	b'00000000'
+	XORWF	FLAG_REG, 0	; Check if you are in the Main Menu (i.e. Check if the last 2 bits of the FLAG_REG are 0s)
+	BTFSC	STATUS, 2
+	RETURN
 	MOVLW	b'00010000'
 	XORWF	CURSOR_POS, 1
 SKIP_HANDLE_UP_DOWN  RETURN	
@@ -351,45 +538,42 @@ LOOP2	NOP
 	GOTO LOOP2
 	RETURN
 
+DELETE_BEFORE	DECF	CURSOR_POS
+	CALL	PRINT_SPACE ; "THE CURSOR NOW IS AFTER THE DELETING POSITION"
+	RETURN
+
+; "POSSIBLE CURSOR POSITIONS: 0110 1001 1100"	
+MOVE_AST_RIGHT CALL DELETE_BEFORE 
+	BTFSS CURSOR_POS,3  ;"SKIP IF BIT3=1"
+	GOTO R1 ;"BIT3 is 0"
+	BTFSS CURSOR_POS,2
+	GOTO R1 ;"BIT2 is 0"
+
+	MOVLW b'00000110' ;"ROTATE"
+	MOVWF CURSOR_POS 
+	GOTO EXIT_RIGHT
+
+R1	MOVLW b'0000010'
+	ADDWF CURSOR_POS,1;
+	GOTO EXIT_RIGHT
+
+EXIT_RIGHT	CALL PRINT_ASTERISK 
+	RETURN
+
+; "POSSIBLE CURSOR POSITIONS: 0110 1001 1100"
+MOVE_AST_LEFT CALL DELETE_BEFORE
+	BTFSC CURSOR_POS,3  ;"SKIP IF BIT3=1"
+	GOTO L1 ;"BIT3 IS 1"
+
+	MOVLW b'00001100' ;"ROTATE SINCE THE CURSOR IS IN THE LEFT MOST POSITION"
+	MOVWF CURSOR_POS 
+	GOTO EXIT_LEFT
+
+L1	MOVLW b'0000100'
+	SUBWF CURSOR_POS,1;
+	GOTO EXIT_LEFT
+
+EXIT_LEFT	CALL PRINT_ASTERISK 
+	RETURN
+
 	END
-;--------------------------------------functions--------------------------------------;
-HANDLE_LEFT	DECFSZ	CURSOR_POS,F	; "Check if the cursor is in the left most position in order to send it to the right most one" 
-	RETURN	; "if cursor is not at 0 just decrement"
-	MOVLW	b'00001111' ; "move to right most position"
-	MOVWF	CURSOR_POS
-	RETURN			
-
-HANDLE_RIGHT	MOVLW	b'00001111'	
-	SUBWF	CURSOR_POS,F	; "Check if the cursor is in the right most position to send it to the left most one" 
-	INCFSZ	W,F
-	GOTO U1	; if cursor is NOT AT 1111 just INCcrement
-	INCF	CURSOR_POS 
-	RETURN
-U1	CLRF	CURSOR_POS
-	RETURN
-
-;--------------------------*functions*-----------------------
-MOVE_*_LEFT	BTFSC	ADDITIONAL,0
-	GOTO UP1 ;"last bit is zero"
-	BCF	ADDITIONAL,0 ; "01 CASE"->"00"
-	RETURN
-UP1	BTFSC	ADDITIONAL,1 
-	GOTO	UP2
-	BSF	ADITIONAL,0	; "00 CASE" ->"11"
-	BSF	ADDITIONAL,1
-	RETURN
-UP2	BCF	ADDITIONAL,0 ; "11 CASE" ->"10"
-	RETURN				
-
-
-MOVE_*_RIGHT	BTFSC	ADDITIONAL,0
-	GOTO UP1 ;"last bit is zero"
-	BSF	ADDITIONAL,1 ; "01 CASE"->"11"
-	RETURN
-UP1	BTFSC	ADDITIONAL,1 
-	GOTO	UP2
-	BSF	ADITIONAL,0	; "00 CASE" ->"01"
-	RETURN
-UP2	BCF	ADDITIONAL,0 ; "11 CASE" ->"00"
-	BCF	ADDITIONAL,1
-	RETURN					

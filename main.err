@@ -1,3 +1,6 @@
-Message[302] C:\USERS\LENOVO\DOCUMENTS\GITHUB\321L-MEMORY-GAME\MAIN.ASM 77 : Register in operand not in bank 0.  Ensure that bank bits are correct.
-Message[302] C:\USERS\LENOVO\DOCUMENTS\GITHUB\321L-MEMORY-GAME\MAIN.ASM 79 : Register in operand not in bank 0.  Ensure that bank bits are correct.
-Message[305] C:\USERS\LENOVO\DOCUMENTS\GITHUB\321L-MEMORY-GAME\MAIN.ASM 95 : Using default destination of 1 (file).
+Warning[205] C:\USERS\LENOVO\DOCUMENTS\GITHUB\321L-MEMORY-GAME\MAIN.ASM 1 : Found directive in column 1. (title)
+Message[302] C:\USERS\LENOVO\DOCUMENTS\GITHUB\321L-MEMORY-GAME\MAIN.ASM 91 : Register in operand not in bank 0.  Ensure that bank bits are correct.
+Message[302] C:\USERS\LENOVO\DOCUMENTS\GITHUB\321L-MEMORY-GAME\MAIN.ASM 93 : Register in operand not in bank 0.  Ensure that bank bits are correct.
+Message[305] C:\USERS\LENOVO\DOCUMENTS\GITHUB\321L-MEMORY-GAME\MAIN.ASM 106 : Using default destination of 1 (file).
+Message[305] C:\USERS\LENOVO\DOCUMENTS\GITHUB\321L-MEMORY-GAME\MAIN.ASM 459 : Using default destination of 1 (file).
+Message[305] C:\USERS\LENOVO\DOCUMENTS\GITHUB\321L-MEMORY-GAME\MAIN.ASM 541 : Using default destination of 1 (file).
