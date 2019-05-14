@@ -5,7 +5,7 @@ As part of EECE 321L course, we were asked to design a memory game that consists
 The cards will be labled alphabetically from A to F.
 --------------------------------------------------------------------------------------------------------------------------
 
-The game will consist of 3 modes:
+The game consists of 3 modes:
 
 Mode 1:
  
