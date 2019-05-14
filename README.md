@@ -3,7 +3,7 @@ Memory Game - An EECE 321L Course Project
 --------------------------------------------------------------------------------------------------------------------------
 As part of EECE 321L course, we were asked to design a memory game that consists of 6 matching pairs.
 The cards will be labled alphabetically from A to F.
-**************************************************************************************************************************
+--------------------------------------------------------------------------------------------------------------------------
 
 The game consists of 3 modes:
 
