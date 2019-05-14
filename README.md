@@ -1,9 +1,10 @@
 # 321L-Memory-Game
 Memory Game - An EECE 321L Course Project
-
+--------------------------------------------------------------------------------------------------------------------------
 As part of EECE 321L course, we were asked to design a memory game that consists of 6 matching pairs.
 The cards will be labled alphabetically from A to F.
 --------------------------------------------------------------------------------------------------------------------------
+
 The game will consist of 3 modes:
 
 Mode 1:
@@ -25,10 +26,10 @@ After every non-matching pair, the system will check if the card were opened mor
 then a point will be deducted from the score for every re-opened revealed card.
 The game will end if the player makes all the available matches or the player reaches the max number of opened
 revealed cards.
+
 --------------------------------------------------------------------------------------------------------------------------
 This project is designed using Mplab IDE.
 The project is implement with an LCD display using PIC16F4A microcontroller.
 Proteus software was used for testing.
 --------------------------------------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------------------------------------
+
