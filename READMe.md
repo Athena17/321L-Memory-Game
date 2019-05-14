@@ -1,5 +1,6 @@
 # 321L-Memory-Game
 Memory Game - An EECE 321L Course Project
+
 As part of EECE 321L course, we were asked to design a memory game that consists of 6 matching pairs.
 The cards will be labled alphabetically from A to F.
 --------------------------------------------------------------------------------------------------------------------------
@@ -28,4 +29,6 @@ revealed cards.
 This project is designed using Mplab IDE.
 The project is implement with an LCD display using PIC16F4A microcontroller.
 Proteus software was used for testing.
+--------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------------------------
