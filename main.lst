@@ -1,0 +1,1761 @@
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE  1
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00001     title       "Memory Game"
+                      00002     list        p=16f84A
+                      00003     radix       hex
+                      00004     include "p16f84a.inc"
+                      00001         LIST
+                      00002 ; P16F84A.INC  Standard Header File, Version 2.00    Microchip Technology, Inc.
+                      00134         LIST
+                      00005 
+                      00006     
+                      00007 ; COUNT registers: These are registers that will be used within delay functions.
+  0000000C            00008 COUNT1  EQU     d'12'
+  0000000D            00009 COUNT2  EQU     d'13'
+  0000000E            00010 COUNT3  EQU     d'14'
+  0000000F            00011 COUNT4  EQU     d'15'
+  00000010            00012 COUNT5  EQU     d'16'
+  00000011            00013 COUNT6  EQU     d'17'
+  00000016            00014 COUNT7  EQU     d'22'
+  00000017            00015 COUNT8  EQU     d'23'
+  00000018            00016 COUNT9  EQU     d'24'
+  00000019            00017 COUNT10 EQU     d'25'
+  0000001A            00018 SCORE   EQU     d'26'
+  0000001A            00019 NUMBER_OF_TENS_OF_SECONDS       EQU     d'26' ; Indicates the timer/10
+                      00020 
+  00000012            00021 CURSOR_POS  EQU d'18' ; Register stores detail about the cursor's current position. Bits[3:0] specify co
+                            lumn number, where as bit 4 specifies the row.
+                      00022                       ; Since there are 16 columns and 2 rows, such an encoding is guaranteed to span al
+                            l cells on the LCD.
+                      00023 
+  00000014            00024 FLAG_REG    EQU d'20' ; Register containing some flags to be used within the program. Structure: [-,-,MO
+                            DE1_WEAK,MODE1_AVG/MODE2_RESULT,GAME_OVER,CONFIRM_STATUS,MODE_BIT2,MODE_BIT1] within the program
+                      00025 
+  00000015            00026 TMP     EQU d'21'  
+  00000004            00027 LEFT_BTN    EQU d'4'
+  00000005            00028 RIGHT_BTN   EQU d'5'
+  00000006            00029 UP_DOWN_BTN EQU d'6'
+  00000007            00030 CONFIRM_BTN EQU d'7'
+                      00031 
+                      00032 ; Character code: A character code is an eight bit number representing one of the possible printable cha
+                            racters on the LCD. The printing of a character encoded by a Character Code shall be handled com
+  00000013            00033 CHAR_CODE   EQU d'19' ; Register containing the Character Code of the character the user wishes to print
+                            .
+                      00034 
+                      00035 ; Predefined Character Codes defined for the sake of code readability.
+  00000041            00036 LTR_A EQU b'01000001'
+  00000042            00037 LTR_B EQU b'01000010' 
+  00000043            00038 LTR_C EQU b'01000011' 
+  00000044            00039 LTR_D EQU b'01000100'
+  00000045            00040 LTR_E EQU b'01000101'
+  00000046            00041 LTR_F EQU b'01000110'
+  00000047            00042 LTR_G EQU b'01000111' 
+  00000048            00043 LTR_H EQU b'01001000'
+  00000049            00044 LTR_I EQU b'01001001' 
+  0000004A            00045 LTR_J EQU b'01001010' 
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE  2
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+  0000004B            00046 LTR_K EQU b'01001011'
+  0000004C            00047 LTR_L EQU b'01001100'
+  0000004D            00048 LTR_M EQU b'01001101' 
+  0000004E            00049 LTR_N EQU b'01001110'
+  0000004F            00050 LTR_O EQU b'01001111' 
+  00000050            00051 LTR_P EQU b'01010000' 
+  00000051            00052 LTR_Q EQU b'01010001' 
+  00000052            00053 LTR_R EQU b'01010010'
+  00000053            00054 LTR_S EQU b'01010011'  
+  00000054            00055 LTR_T EQU b'01010100'  
+  00000055            00056 LTR_U EQU b'01010101'  
+  00000056            00057 LTR_V EQU b'01010110'  
+  00000057            00058 LTR_W EQU b'01010111' 
+  00000058            00059 LTR_X EQU b'01011000'  
+  00000059            00060 LTR_Y EQU b'01011001'
+  0000005A            00061 LTR_Z EQU b'01011010'
+  00000030            00062 LTR_0 EQU b'00110000'
+  00000031            00063 LTR_1 EQU b'00110001'
+  00000032            00064 LTR_2 EQU b'00110010'
+  00000033            00065 LTR_3 EQU b'00110011'
+  00000034            00066 LTR_4 EQU b'00110100'
+  00000035            00067 LTR_5 EQU b'00110101'
+  00000036            00068 LTR_6 EQU b'00110110'
+  00000037            00069 LTR_7 EQU b'00110111'
+  00000038            00070 LTR_8 EQU b'00111000'
+  00000039            00071 LTR_9 EQU b'00111001'
+  0000002A            00072 LTR_ASTERISK EQU b'00101010'
+  000000A0            00073 LTR_SPACE   EQU b'10100000'
+  000000DB            00074 LTR_BOX   EQU b'11011011' 
+  000000A3            00075 LTR_SEPARATOR   EQU     b'10100011'
+  000000FF            00076 LTR_SHADE   EQU b'11111111'
+  0000002D            00077 LTR_MINUS       EQU b'00101101'
+  0000002B            00078 LTR_PLUS        EQU     b'00101011'
+                      00079         
+                      00080 ; Explanation of cell register choice:
+                      00081 ; Here we intend to use indirect addressing to access the elements inside the cells, given that our curs
+                            or pos is encoded in such a way where
+                      00082 ; bit 4 corresponds to row number and bits[3:0] correspond to col number, and since the board is 2x6 cel
+                            ls wide, then the valid cursor positions
+                      00083 ; in-game will range from 00000 to 00101 on (0 to 5) in row 1 and from 10000 to 10101 (16 to 21) in row 
+                            2. In order to make it simple to access,
+                      00084 ; and in order to use valid registed to store the Letters in, we add some offset to the FSR, which is 42
+                            , chosen so that the last cell (with CURSOR_POS=21) occupies the
+                      00085 ; last available register in memory (register 63).
+  0000002A            00086 CELL_11 EQU d'42'
+  0000002B            00087 CELL_12 EQU d'43'
+  0000002C            00088 CELL_13 EQU d'44'
+  0000002D            00089 CELL_14 EQU d'45'
+  0000002E            00090 CELL_15 EQU d'46'
+  0000002F            00091 CELL_16 EQU d'47'
+                      00092 
+  0000003A            00093 CELL_21 EQU d'58'
+  0000003B            00094 CELL_22 EQU d'59'
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE  3
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+  0000003C            00095 CELL_23 EQU d'60'
+  0000003D            00096 CELL_24 EQU d'61'
+  0000003E            00097 CELL_25 EQU d'62'
+  0000003F            00098 CELL_26 EQU d'63'   
+                      00099  
+  00000030            00100 CARD1   EQU d'48' ; Registers that store the value of the two cards that are selected.
+  00000031            00101 CARD2   EQU d'49'
+                      00102 
+  00000032            00103 WEAKNESS    EQU d'50'   ; Holds the weakness for mode1
+                      00104 
+  00000035            00105 NUM_LEFT EQU    d'53'  ; Holds the number of remaining card pairs that have not yet been matched.
+  00000036            00106 NUM_ERRORS  EQU d'54'   ; Holds the number of incorrect guesses the user has inputted.
+  00000037            00107 NUM_CORRECT  EQU        d'55'  ; Holds the number of pairs of cards that have been correctly guessed. Al
+                            though NUM_LEFT & NUM_CORRECT can be merged into one register, each register contains informatio
+                      00108                                             ; in a more useful form depending on the Mode.
+  00000038            00109 SCORE_REG       EQU     d'56'
+                      00110         
+  00000039            00111 CELL_ADDRESS    EQU d'57'  ; Temporary register that stores the address of the first card that is opened
+                             (so as not to overwrite it when opening the second)
+                      00112 
+                      00113 
+0000                  00114         ORG     0x0
+0000   2808           00115         GOTO    MAIN  ; Start progrm from the MAIN label
+0004                  00116         ORG     0x04   ; Handle interrupts
+                      00117 
+0004   180B           00118         BTFSC   INTCON, d'0' ; If RB4 is set, then the interrupt is on one of the buttons.
+0005   29D2           00119         GOTO RB4_INT
+                      00120 
+0006   190B           00121         BTFSC   INTCON, d'2' ; If TMR0 is set, then the interrupt is on TMR0, i.e. due to the timer in M
+                            ode 2.
+0007   29DD           00122         GOTO    TMR0_INT
+                      00123 
+                      00124         
+                      00125 ; Register Configuration
+0008   0185           00126 MAIN    CLRF    PORTA     ; Reset PORTA and PORTB, and correctly setup inputs & outputs.
+0009   0186           00127         CLRF    PORTB
+000A   1683           00128         BSF     STATUS,RP0
+000B   30F0           00129         MOVLW   b'11110000' ; Set   RB[7:4] as inputs (buttons), the rest are outputs (Speaker, LEDs, LC
+                            D Enable, etc...)
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+000C   0086           00130         MOVWF   TRISB
+                      00131         
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+000D   0185           00132         CLRF    TRISA       ; Set all pins of PORTA as outputs
+000E   1283           00133         BCF     STATUS,RP0
+                      00134 
+                      00135 ; Initialize the LCD
+                      00136 ; Simple routine to setup the LCD. No blinking, no cursor(yet), standard settings.
+000F   22F8           00137 INIT    CALL    DELAYFMS
+0010   3002           00138         MOVLW   b'00010'
+0011   0085           00139         MOVWF   PORTA
+0012   2124           00140         CALL    ET
+0013   3002           00141         MOVLW   b'00010'
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE  4
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0014   0085           00142         MOVWF   PORTA
+0015   2124           00143         CALL    ET
+0016   300A           00144         MOVLW   b'01010'
+0017   0085           00145         MOVWF   PORTA
+0018   2124           00146         CALL    ET
+                      00147         
+0019   3000           00148         MOVLW   b'00000'
+001A   0085           00149         MOVWF   PORTA
+001B   2124           00150         CALL    ET
+001C   300C           00151         MOVLW   b'01100'
+001D   0085           00152         MOVWF   PORTA
+001E   2124           00153         CALL    ET
+                      00154         
+001F   3000           00155         MOVLW   b'00000'
+0020   0085           00156         MOVWF   PORTA
+0021   2124           00157         CALL    ET
+0022   3001           00158         MOVLW   b'00001'
+0023   0085           00159         MOVWF   PORTA
+0024   2124           00160         CALL    ET
+                      00161 
+0025   3000           00162         MOVLW   b'00000'
+0026   0085           00163         MOVWF   PORTA
+0027   2124           00164         CALL    ET
+0028   3006           00165         MOVLW   b'00110'
+0029   0085           00166         MOVWF   PORTA
+002A   2124           00167         CALL    ET
+                      00168 
+                      00169 ; Print the words "Memory Game" on the screen, and wait for 3 seconds
+002B                  00170 WELCOME_SCREEN 
+002B   212D           00171         CALL    CLEAR_SCREEN
+002C   0194           00172         CLRF    FLAG_REG
+002D   3002           00173         MOVLW b'00000010' ; Move the cursor to 0x04
+002E   0092           00174         MOVWF CURSOR_POS
+                      00175         
+002F   2182           00176         CALL PRINT_M
+0030   2179           00177         CALL PRINT_E
+0031   2182           00178         CALL PRINT_M
+0032   2185           00179         CALL PRINT_O
+0033   218B           00180         CALL PRINT_R
+0034   219D           00181         CALL PRINT_Y
+                      00182         
+0035   300A           00183         MOVLW b'00001010' ; Move the cursor to 0x0A (Column 10)
+0036   0092           00184         MOVWF CURSOR_POS
+                      00185         
+0037   217C           00186         CALL PRINT_G
+0038   2170           00187         CALL PRINT_A
+0039   2182           00188         CALL PRINT_M
+003A   2179           00189         CALL PRINT_E
+                      00190         
+003B   3000           00191         MOVLW b'00000000' ; Move the cursor to 0x00
+003C   0092           00192         MOVWF CURSOR_POS
+                      00193         
+003D   22EC           00194         CALL DELAY3S
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE  5
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00195 
+                      00196 
+                      00197 ; Present the user with the Main Menu or Mode Selection screen, enable interrupts only once the screen h
+                            as finished loading.
+003E   212D           00198 MAIN_MENU   CALL    CLEAR_SCREEN    ; Reset everything, this makes sure nothing from previous games affe
+                            cts the next one. Note: Mode specific registers are cleared right after mode selection
+003F   0186           00199         CLRF    PORTB
+0040   2134           00200         CALL    HIDE_CURSOR
+0041   0194           00201         CLRF    FLAG_REG
+0042   3000           00202         MOVLW   0
+0043   0092           00203         MOVWF   CURSOR_POS
+0044   2182           00204         CALL PRINT_M
+0045   2185           00205         CALL PRINT_O
+0046   2176           00206         CALL PRINT_D
+0047   2179           00207         CALL PRINT_E
+                      00208         
+0048   3003           00209         MOVLW d'3'   ; Move the cursor three units to the right
+0049   0792           00210         ADDWF CURSOR_POS, 1
+                      00211         
+004A   21B2           00212         CALL PRINT_1
+                      00213         
+004B   3002           00214         MOVLW d'2'   ; Move the cursor two units to the right
+004C   0792           00215         ADDWF CURSOR_POS, 1
+                      00216         
+004D   21B5           00217         CALL PRINT_2
+                      00218         
+004E   3002           00219         MOVLW d'2'   ; Move the cursor two units to the right
+004F   0792           00220         ADDWF CURSOR_POS, 1
+                      00221         
+0050   21B8           00222         CALL PRINT_3
+0051   3006           00223         MOVLW   b'00000110'
+0052   0092           00224         MOVWF   CURSOR_POS
+0053   21A0           00225         CALL PRINT_ASTERISK
+                      00226 
+0054   3088           00227         MOVLW   b'10001000' ; Properly setup the interrupts. Only GIE and RBIE should be set.
+0055   008B           00228         MOVWF   INTCON
+                      00229 
+                      00230 ; Check which mode the user has selected, if any. Note that the FLAG_REG is changed in the interrupt whe
+                            n the user click on the the Confirm button.
+0056   1894           00231 INF BTFSC   FLAG_REG,1  ; Check if bit 1 is set, if it is then it the user either wants Mode 3 or 2, oth
+                            erwise, we are either still in the Mode selection, or we need to go to Mode 1
+0057   2859           00232     GOTO  MODE2_OR_3
+0058   285C           00233     GOTO  MODE1_OR_INF
+                      00234 
+0059   1814           00235 MODE2_OR_3 BTFSC    FLAG_REG,0  ; Check bit 0 to determine if we should go to Mode 2 or 3.
+005A   28C6           00236     GOTO  MODE3
+005B   2888           00237     GOTO  MODE2
+                      00238 
+005C   1814           00239 MODE1_OR_INF BTFSC  FLAG_REG,0  ; Check bit 0 to determine if we should go to Mode 1 or stay in the Main
+                             Menu.
+005D   285F           00240     GOTO  MODE1_OR_3    ; Here we check the state of the FLAG_REG one last time. Although this may seem 
+                            redundant, it is necessary since
+                      00241                                         ; This fixes problems when interrupt is called right before chec
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE  6
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                            king for MODE1 or INF, when it should be MODE3, but the controller would have already skipped th
+005E   2856           00242     GOTO  INF
+                      00243 
+005F   1894           00244 MODE1_OR_3 BTFSC    FLAG_REG,1  ; The fix for the small issue presented above.
+0060   28C6           00245     GOTO  MODE3
+0061   2862           00246     GOTO  MODE1
+                      00247 
+0062   20CE           00248 MODE1   CALL  SETUP  ; Show the cards and print the Scoreboard for Mode 1.
+0063   20FF           00249         CALL    MODE1_SCOREBOARD
+0064   216B           00250         CALL    RESET_CURSOR
+                      00251         
+0065   1D94           00252 LOOP_M1 BTFSS   FLAG_REG, 3     ; Check if the game is over (pin 3 on the FLAG_REG is set)
+0066   2865           00253         GOTO    LOOP_M1
+0067   138B           00254         BCF INTCON, 7   ; Disable all interrupts
+0068   3019           00255         MOVLW   b'00011001'
+0069   0092           00256         MOVWF   CURSOR_POS
+006A   1A94           00257         BTFSC   FLAG_REG, 5     ;  Check if the WEAK flag is raised
+006B   286F           00258         GOTO    MODE1_WEAK
+006C   1A14           00259         BTFSC   FLAG_REG, 4     ;  Check if the AVG flag is raised
+006D   2877           00260         GOTO    MODE1_AVG
+006E   287E           00261         GOTO    MODE1_SUPER     ;  Default Case the player should be shown SUPER
+                      00262         
+                      00263         
+                      00264 ; Handle the different endings for Mode 1 as specified in the Manual.
+006F   219A           00265 MODE1_WEAK  CALL    PRINT_W
+0070   2179           00266         CALL    PRINT_E
+0071   2170           00267         CALL    PRINT_A
+0072   217F           00268         CALL    PRINT_K
+0073   1506           00269         BSF     PORTB, 2
+0074   22EC           00270         CALL    DELAY3S
+0075   22EC           00271         CALL    DELAY3S
+0076   283E           00272         GOTO    MAIN_MENU
+                      00273 
+0077   2170           00274 MODE1_AVG CALL    PRINT_A
+0078   2197           00275         CALL    PRINT_V
+0079   217C           00276         CALL    PRINT_G
+007A   1586           00277         BSF     PORTB, 3
+007B   22EC           00278         CALL    DELAY3S
+007C   22EC           00279         CALL    DELAY3S
+007D   283E           00280         GOTO    MAIN_MENU
+                      00281         
+007E   2191           00282 MODE1_SUPER     CALL    PRINT_S
+007F   2194           00283         CALL    PRINT_U
+0080   2188           00284         CALL    PRINT_P
+0081   2179           00285         CALL    PRINT_E
+0082   218B           00286         CALL    PRINT_R
+0083   3003           00287         MOVLW   d'3'
+0084   008C           00288         MOVWF   COUNT1
+0085   230C           00289         CALL    PATTERN_LOOP
+0086   0194           00290         CLRF    FLAG_REG
+0087   283E           00291         GOTO    MAIN_MENU
+                      00292 
+                      00293 ; Code for Mode 2
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE  7
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00294 
+0088                  00295 MODE2 
+0088   1683           00296         BSF     STATUS,RP0
+0089   3087           00297         MOVLW   b'10000111' ; Update the option register(TMR0 clk source is the internal instruction cyc
+                            le clk)
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+008A   0081           00298         MOVWF   OPTION_REG      ; TMR0 Rate = 1:256
+008B   1283           00299         BCF     STATUS,RP0
+008C   20CE           00300         CALL  SETUP
+008D   3006           00301         MOVLW   d'6'
+008E   00B5           00302         MOVWF   NUM_LEFT
+008F   01B7           00303         CLRF    NUM_CORRECT
+0090   3009           00304         MOVLW   d'9'
+0091   009A           00305         MOVWF   NUMBER_OF_TENS_OF_SECONDS
+0092   3098           00306         MOVLW   d'152'
+0093   0099           00307         MOVWF   COUNT10
+0094   3008           00308         MOVLW   b'00001000'
+0095   0092           00309         MOVWF   CURSOR_POS      
+0096   218B           00310         CALL    PRINT_R
+0097   2179           00311         CALL    PRINT_E
+0098   2182           00312         CALL    PRINT_M
+0099   21A3           00313         CALL    PRINT_SPACE
+009A   218E           00314         CALL    PRINT_T
+009B   3030           00315         MOVLW   b'00110000'     ;Add a bias that corresponds to zero
+009C   071A           00316         ADDWF   NUMBER_OF_TENS_OF_SECONDS,0
+009D   213E           00317         CALL    WRITE_CHAR
+009E   21AF           00318         CALL    PRINT_0
+009F   216B           00319         CALL    RESET_CURSOR
+                      00320                 
+00A0   168B           00321         BSF INTCON, 5   ; The TMR0 interrupt enable flag (T0IE – bit 5 of the INTCON register) must be s
+                            et
+00A1   160B           00322         BSF     INTCON, 4
+00A2   0181           00323         CLRF    TMR0
+00A3   178B           00324         BSF     INTCON, 7
+                      00325 ;Calculations:
+                      00326 ;TMR0 overflows every 1us*256*256 = 0.065536 s
+                      00327 ;To achieve a 10s delay TMR0 should overflow ~ 152 times
+                      00328 
+00A4   1A14           00329 LOOP_M2 BTFSC   FLAG_REG,4      ;If bit4 of this register is 1 then the time has finished -> go to resul
+                            t 
+00A5   28A9           00330         GOTO    MODE2_RESULT
+00A6   1994           00331         BTFSC   FLAG_REG,3
+00A7   28A9           00332         GOTO    MODE2_RESULT
+00A8   28A4           00333         GOTO    LOOP_M2 
+00A9   018B           00334 MODE2_RESULT    CLRF    INTCON  ;Disable all interrupts 
+00AA   3018           00335         MOVLW   b'00011000'
+00AB   0092           00336         MOVWF   CURSOR_POS
+00AC   2191           00337         CALL    PRINT_S
+00AD   2173           00338         CALL    PRINT_C
+00AE   2185           00339         CALL    PRINT_O
+00AF   218B           00340         CALL    PRINT_R
+00B0   2179           00341         CALL    PRINT_E
+00B1   21A3           00342         CALL    PRINT_SPACE
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE  8
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+00B2   0837           00343         MOVFW   NUM_CORRECT
+00B3   071A           00344         ADDWF   NUMBER_OF_TENS_OF_SECONDS,0 ; W contains the score
+00B4   009A           00345         MOVWF   SCORE
+00B5   300A           00346         MOVLW   d'10'
+00B6   021A           00347         SUBWF   SCORE,0 ;       W = SCORE - 10
+00B7   1803           00348         BTFSC   STATUS,0 ;Set if result is negative i.e. score<10
+00B8   20C2           00349         CALL    ONE                                                                                     
+                                    
+00B9   3030           00350         MOVLW   b'00110000'     ;Add a bias that corresponds to zero            
+00BA   071A           00351         ADDWF   SCORE,0
+00BB   213E           00352         CALL    WRITE_CHAR
+                      00353 
+00BC   0186           00354         CLRF    PORTB
+00BD   0194           00355         CLRF    FLAG_REG
+                      00356 
+00BE   22EC           00357         CALL    DELAY3S                                 
+00BF   22EC           00358         CALL    DELAY3S                                                                 
+                      00359 
+                      00360         
+00C0   018B           00361         CLRF    INTCON
+00C1   283E           00362         GOTO    MAIN_MENU       
+                      00363 
+00C2   21B2           00364 ONE     CALL    PRINT_1
+00C3   300A           00365         MOVLW   d'10'
+00C4   029A           00366         SUBWF   SCORE,1
+00C5   0008           00367         RETURN
+                      00368 
+                      00369 ; Code for Mode 3
+                      00370         
+00C6   20CE           00371 MODE3 CALL  SETUP
+00C7   210C           00372         CALL    MODE3_SCOREBOARD
+00C8   01B6           00373         CLRF    NUM_ERRORS
+00C9   01B7           00374         CLRF    NUM_CORRECT
+00CA   216B           00375         CALL    RESET_CURSOR
+00CB   1994           00376 LOOP_M3 BTFSC   FLAG_REG, 3
+00CC   283E           00377         GOTO    MAIN_MENU
+00CD   28CB           00378         GOTO    LOOP_M3
+                      00379 
+                      00380 
+                      00381 ; SETUP: Function that loads the correct letters in the Cell registers  and prints boxes to "hide" them.
+00CE                  00382 SETUP
+00CE   138B           00383         BCF     INTCON, 7
+                      00384         
+00CF   212D           00385         CALL    CLEAR_SCREEN
+00D0   20D5           00386         CALL    POPULATE_TABLE
+00D1   20EE           00387         CALL    HIDE_TABLE
+                      00388         
+00D2   3006           00389         MOVLW   6
+00D3   00B5           00390         MOVWF   NUM_LEFT ; There are initially 6 pairs to find.
+                      00391         
+00D4   0008           00392         RETURN
+                      00393 
+                      00394 
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE  9
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00395 ; POPULATE_TABLE: In order to print the characters while also preserving space in the cell registers for
+                             flag bits, the letters are encoded according to the following:
+                      00396 ; A -> 0
+                      00397 ; B -> 1
+                      00398 ; C -> 2
+                      00399 ; D -> 3
+                      00400 ; E -> 4
+                      00401 ; F -> 5
+                      00402 ; In order to print the characters correctly, it suffices only to add the bias (which is already defined
+                             in LTR_A) and call WRITE_CHAR.
+00D5   3002           00403 POPULATE_TABLE MOVLW    2       ; Encoded Letter C
+00D6   00AA           00404     MOVWF  CELL_11
+00D7   3000           00405     MOVLW  0    ; Encoded Letter A
+00D8   00AB           00406     MOVWF  CELL_12
+00D9   3004           00407     MOVLW  4    ; Encoded Letter E
+00DA   00AC           00408     MOVWF  CELL_13
+00DB   3005           00409     MOVLW  5    ; Encoded Letter F
+00DC   00AD           00410     MOVWF  CELL_14
+00DD   3001           00411     MOVLW  1    ; Encoded Letter B
+00DE   00AE           00412     MOVWF  CELL_15
+00DF   3003           00413     MOVLW  3    ; Encoded Letter D
+00E0   00AF           00414     MOVWF  CELL_16
+00E1   3001           00415     MOVLW  1    ; Encoded Letter B
+00E2   00BA           00416     MOVWF  CELL_21
+00E3   3003           00417     MOVLW  3    ; Encoded Letter D
+00E4   00BB           00418     MOVWF  CELL_22
+00E5   3005           00419     MOVLW  5    ; Encoded Letter F
+00E6   00BC           00420     MOVWF  CELL_23
+00E7   3002           00421     MOVLW  2    ; Encoded Letter C
+00E8   00BD           00422     MOVWF  CELL_24
+00E9   3000           00423     MOVLW  0    ; Encoded Letter A
+00EA   00BE           00424     MOVWF  CELL_25
+00EB   3004           00425     MOVLW  4    ; Encoded Letter E
+00EC   00BF           00426     MOVWF  CELL_26
+00ED   0008           00427     RETURN 
+                      00428 
+                      00429 ; HIDE_TABLE: Print a 6x2 table of boxes.
+00EE   3000           00430 HIDE_TABLE MOVLW    b'00000000' ; Move the cursor to 0x00
+00EF   0092           00431     MOVWF  CURSOR_POS
+                      00432 
+00F0   21A6           00433     CALL  PRINT_BOX
+00F1   21A6           00434     CALL  PRINT_BOX
+00F2   21A6           00435     CALL  PRINT_BOX
+00F3   21A6           00436     CALL  PRINT_BOX
+00F4   21A6           00437     CALL  PRINT_BOX
+00F5   21A6           00438     CALL  PRINT_BOX
+                      00439 
+00F6   3010           00440     MOVLW  b'00010000' ; Move cursor to 0x40
+00F7   0092           00441     MOVWF  CURSOR_POS
+                      00442 
+00F8   21A6           00443     CALL  PRINT_BOX
+00F9   21A6           00444     CALL  PRINT_BOX
+00FA   21A6           00445     CALL  PRINT_BOX
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 10
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+00FB   21A6           00446     CALL  PRINT_BOX
+00FC   21A6           00447     CALL  PRINT_BOX
+00FD   21A6           00448     CALL  PRINT_BOX
+00FE   0008           00449     RETURN
+                      00450 
+                      00451 ; Prints the scoreboard for Mode 1, resets weakness as well.
+00FF   3008           00452 MODE1_SCOREBOARD        MOVLW   b'00001000'
+0100   0092           00453     MOVWF       CURSOR_POS
+0101   2191           00454     CALL        PRINT_S
+0102   21AC           00455     CALL        PRINT_SEPARATOR
+0103   21AC           00456     CALL        PRINT_SEPARATOR
+0104   21AC           00457     CALL        PRINT_SEPARATOR
+0105   21AC           00458     CALL        PRINT_SEPARATOR
+0106   21AC           00459     CALL        PRINT_SEPARATOR
+0107   21AC           00460         CALL    PRINT_SEPARATOR
+0108   219A           00461     CALL        PRINT_W
+0109   01B2           00462     CLRF        WEAKNESS
+                      00463 
+010A   178B           00464     BSF INTCON, 7
+010B   0008           00465     RETURN
+                      00466 
+                      00467 ; Prints the scoreboard for Mode 3, resets SCORE_REG as well to its initial value (13).
+010C   3008           00468 MODE3_SCOREBOARD        MOVLW   b'00001000'
+010D   0092           00469     MOVWF       CURSOR_POS
+010E   302D           00470         MOVLW   LTR_MINUS
+010F   213E           00471         CALL    WRITE_CHAR
+                      00472 
+0110   21AF           00473         CALL    PRINT_0
+                      00474 
+0111   3002           00475         MOVLW   d'2'
+0112   0792           00476         ADDWF   CURSOR_POS, 1
+                      00477 
+0113   302B           00478         MOVLW   LTR_PLUS
+0114   213E           00479         CALL    WRITE_CHAR
+                      00480 
+0115   21AF           00481         CALL    PRINT_0
+                      00482 
+0116   01B6           00483         CLRF    NUM_ERRORS
+0117   01B7           00484         CLRF    NUM_CORRECT
+                      00485 
+0118   3018           00486         MOVLW   b'00011000'
+0119   0092           00487         MOVWF   CURSOR_POS
+                      00488         
+011A   2191           00489         CALL    PRINT_S
+011B   2173           00490         CALL    PRINT_C
+011C   2185           00491         CALL    PRINT_O
+011D   218B           00492         CALL    PRINT_R
+011E   2179           00493         CALL    PRINT_E
+                      00494 
+011F   300D           00495         MOVLW   d'13'
+0120   00B8           00496         MOVWF   SCORE_REG
+0121   21CD           00497         CALL    PRINT_SCORE
+                      00498         
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 11
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0122   178B           00499     BSF INTCON, 7
+0123   0008           00500     RETURN
+                      00501 
+                      00502 
+                      00503 ; ****************************************************************          LCD INTERFACING         ****
+                            *******************************************************************
+                      00504 
+                      00505 ; ET: Writes data to LCD.
+0124   1486           00506 ET      BSF     PORTB,1
+0125   0000           00507         NOP
+0126   1086           00508         BCF     PORTB,1
+0127   3004           00509         MOVLW   d'4'
+0128   008C           00510         MOVWF   COUNT1
+0129   22FE           00511 LOOP5MS CALL    DELAYMS
+012A   0B8C           00512         DECFSZ  COUNT1,F
+012B   2929           00513         GOTO    LOOP5MS
+012C   0008           00514         RETURN
+                      00515         
+                      00516 ; CLEAR_SCREEN: Erases all characters on the screen and sets the cursor back to row 0, col 0
+012D   3000           00517 CLEAR_SCREEN    MOVLW   b'00000'    ; Send to the LCD "00 0000 0001", which is the instruction to clear 
+                            the display.
+012E   0085           00518         MOVWF   PORTA
+012F   2124           00519         CALL ET
+                      00520         
+0130   3001           00521         MOVLW   b'00001'
+0131   0085           00522         MOVWF   PORTA
+0132   2124           00523         CALL ET
+                      00524         
+0133   0008           00525         RETURN
+                      00526 
+                      00527 ; HIDE_CURSOR: Prevents cursor from being displayed on the screen
+0134   3000           00528 HIDE_CURSOR     MOVLW   b'00000'                
+0135   0085           00529         MOVWF   PORTA
+0136   2124           00530         CALL    ET
+0137   300C           00531         MOVLW   b'01100'
+0138   0085           00532         MOVWF   PORTA
+0139   2124           00533         CALL    ET
+                      00534 
+                      00535 
+                      00536 ; DELETE_BEFORE: Deletes the character right before the cursor and decrements the cursor position
+Message[305]: Using default destination of 1 (file).
+013A   0392           00537 DELETE_BEFORE   DECF    CURSOR_POS
+013B   30A0           00538         MOVLW   LTR_SPACE        ; Print space in order to erase the char
+013C   213E           00539         CALL WRITE_CHAR
+013D   0008           00540         RETURN 
+                      00541 
+                      00542 
+                      00543 ;   WRITE_CHAR: Automatically writes a character at address specified in CURSOR_POS and increments CURSO
+                            R_POS in anticipation of the next character
+                      00544 ;  Note: In order to save lines, the W register is initially assumed to contain the character code.
+013E   0093           00545 WRITE_CHAR      MOVWF   CHAR_CODE  ; Load the Character Code into CHAR_CODE register.
+013F   1A12           00546         BTFSC   CURSOR_POS,4    ; If line (encoded as bit 4) is not 0, i.e. line is 1 then specify the f
+                            irst bit in the address as a 4.
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 12
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0140   300C           00547         MOVLW   b'01100'
+0141   1E12           00548         BTFSS   CURSOR_POS,4            ; If line (encoded as bit 4) is not 1, i.e. line is 0 then speci
+                            fy the first bit in the address as a 0.
+0142   3008           00549         MOVLW   b'01000'
+0143   0085           00550         MOVWF   PORTA
+0144   2124           00551         CALL ET
+                      00552         
+0145   0812           00553         MOVF    CURSOR_POS,0
+0146   390F           00554         ANDLW   h'0f'       ; Mask the first 4 bits (which correspond to the column number)
+0147   0085           00555         MOVWF   PORTA
+0148   2124           00556         CALL ET
+                      00557         
+                      00558         ;   Handling character code: A character code is an 8-bit number representing a printable charac
+                            ter. To print it to the screen, we should mask the upper four
+                      00559         ;   bits, shift left 4 times, set the first bit to 1 and write to the LCD. Then, mask the lower 
+                            four bits, set the first bit to 1 and write to the LCD.
+                      00560         
+0149   0E13           00561         SWAPF   CHAR_CODE, 0 ; Move contents of CHAR_CODE to W, swapping the nibbles.
+014A   390F           00562         ANDLW   h'0f'        ; Mask the first 4 bits (which are now in the lower bits after swapping)
+014B   3E10           00563         ADDLW   h'10'        ; Set the first bit of the W reg (adding 16)
+                      00564         
+014C   0085           00565         MOVWF   PORTA
+014D   2124           00566         CALL ET
+                      00567         
+014E   0813           00568         MOVF    CHAR_CODE, 0 ; Move contents of CHAR_CODE register to W register
+014F   390F           00569         ANDLW   h'0f'        ; Mask the last 4 bits
+0150   3E10           00570         ADDLW   h'10'        ; Set the first bit of the W reg (adding 16)
+                      00571         
+0151   0085           00572         MOVWF   PORTA
+0152   2124           00573         CALL ET
+0153   0A92           00574         INCF    CURSOR_POS,1    ; Increment the column number, equivalent to moving the cursor to await 
+                            the next character.
+0154   0008           00575         RETURN
+                      00576 
+                      00577 
+                      00578 ; SHOW_CURSOR:  Forces the LCD to display a dashed line denoting the position of the cursor.
+0155                  00579 SHOW_CURSOR
+0155   3000           00580         MOVLW   b'00000'
+0156   0085           00581         MOVWF   PORTA
+0157   2124           00582         CALL    ET
+0158   3000           00583         MOVLW   b'00000'
+0159   0085           00584         MOVWF   PORTA
+                      00585 
+015A   300E           00586         MOVLW   b'01110'
+015B   0085           00587         MOVWF   PORTA
+015C   2124           00588         CALL    ET
+015D   3000           00589         MOVLW   b'00000'
+015E   0085           00590         MOVWF   PORTA
+015F   0008           00591         RETURN
+                      00592         
+                      00593 ; MOVE_CURSOR: Forces the cursor on the LCD to move without printing anything, CURSOR_POS must be set ri
+                            ght before calling this function
+0160   1A12           00594 MOVE_CURSOR     BTFSC   CURSOR_POS,4    ; If line (encoded as bit 4) is not 0, i.e. line is 1 then speci
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 13
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                            fy the first bit in the address as a 4.
+0161   300C           00595         MOVLW   b'01100'
+0162   1E12           00596         BTFSS   CURSOR_POS,4            ; If line (encoded as bit 4) is not 1, i.e. line is 0 then speci
+                            fy the first bit in the address as a 0.
+0163   3008           00597         MOVLW   b'01000'
+0164   0085           00598         MOVWF   PORTA
+0165   2124           00599         CALL ET
+                      00600         
+0166   0812           00601         MOVF    CURSOR_POS,0
+0167   390F           00602         ANDLW   h'0f'       ; Mask the first 4 bits (which correspond to the column number)
+0168   0085           00603         MOVWF   PORTA
+0169   2124           00604         CALL ET
+016A   0008           00605         RETURN
+                      00606 
+                      00607 ; RESET_CURSOR: Resets the position of the cursor to row 0, col 0 both on the LCD and in CURSOR_POS
+016B   3000           00608 RESET_CURSOR    MOVLW   0
+016C   0092           00609         MOVWF   CURSOR_POS
+016D   2160           00610         CALL    MOVE_CURSOR
+016E   2155           00611         CALL    SHOW_CURSOR
+016F   0008           00612         RETURN
+                      00613         
+                      00614 ; One-liners to print specific characters.
+                      00615 ; Given that each function consists of 3 lines, and printing one character without a function takes at l
+                            east 2 (Moving it to W and calling WRITE_CHAR), it is more
+                      00616 ; Efficient to create a function for every letter that needs to be printed at least twice. This signific
+                            antly reduces the amount of lines needed.
+0170   3041           00617 PRINT_A MOVLW   LTR_A
+0171   213E           00618         CALL WRITE_CHAR
+0172   0008           00619         RETURN
+                      00620 
+0173   3043           00621 PRINT_C MOVLW   LTR_C
+0174   213E           00622         CALL WRITE_CHAR
+0175   0008           00623         RETURN
+                      00624         
+0176   3044           00625 PRINT_D MOVLW   LTR_D
+0177   213E           00626         CALL WRITE_CHAR
+0178   0008           00627         RETURN
+                      00628         
+0179   3045           00629 PRINT_E MOVLW   LTR_E
+017A   213E           00630         CALL WRITE_CHAR
+017B   0008           00631         RETURN
+                      00632 
+017C   3047           00633 PRINT_G MOVLW   LTR_G
+017D   213E           00634         CALL WRITE_CHAR
+017E   0008           00635         RETURN
+                      00636         
+017F   304B           00637 PRINT_K MOVLW   LTR_K
+0180   213E           00638         CALL WRITE_CHAR
+0181   0008           00639         RETURN
+                      00640         
+0182   304D           00641 PRINT_M MOVLW   LTR_M
+0183   213E           00642         CALL WRITE_CHAR
+0184   0008           00643         RETURN
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 14
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00644 
+0185   304F           00645 PRINT_O MOVLW   LTR_O
+0186   213E           00646         CALL WRITE_CHAR
+0187   0008           00647         RETURN
+                      00648 
+0188   3050           00649 PRINT_P MOVLW   LTR_P
+0189   213E           00650         CALL WRITE_CHAR
+018A   0008           00651         RETURN
+                      00652 
+018B   3052           00653 PRINT_R MOVLW   LTR_R
+018C   213E           00654         CALL WRITE_CHAR
+018D   0008           00655         RETURN
+                      00656 
+018E   3054           00657 PRINT_T MOVLW   LTR_T
+018F   213E           00658         CALL WRITE_CHAR
+0190   0008           00659         RETURN
+                      00660 
+0191   3053           00661 PRINT_S MOVLW   LTR_S
+0192   213E           00662         CALL WRITE_CHAR
+0193   0008           00663         RETURN
+                      00664 
+0194   3055           00665 PRINT_U MOVLW   LTR_U
+0195   213E           00666         CALL WRITE_CHAR
+0196   0008           00667         RETURN
+                      00668         
+0197   3056           00669 PRINT_V MOVLW   LTR_V
+0198   213E           00670         CALL WRITE_CHAR
+0199   0008           00671         RETURN
+                      00672         
+019A   3057           00673 PRINT_W MOVLW   LTR_W
+019B   213E           00674         CALL WRITE_CHAR
+019C   0008           00675         RETURN
+                      00676 
+019D   3059           00677 PRINT_Y MOVLW   LTR_Y
+019E   213E           00678         CALL WRITE_CHAR
+019F   0008           00679         RETURN
+                      00680         
+01A0   302A           00681 PRINT_ASTERISK  MOVLW   LTR_ASTERISK
+01A1   213E           00682         CALL WRITE_CHAR
+01A2   0008           00683         RETURN
+                      00684                                          
+01A3   30A0           00685 PRINT_SPACE     MOVLW   LTR_SPACE        ; print space in order to erase the char
+01A4   213E           00686         CALL WRITE_CHAR
+01A5   0008           00687         RETURN
+                      00688         
+01A6   30DB           00689 PRINT_BOX MOVLW LTR_BOX
+01A7   213E           00690     CALL  WRITE_CHAR
+01A8   0008           00691     RETURN
+                      00692     
+01A9   30FF           00693 PRINT_SHADE MOVLW       LTR_SHADE
+01AA   213E           00694     CALL  WRITE_CHAR
+01AB   0008           00695     RETURN
+                      00696 
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 15
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+01AC   30A3           00697 PRINT_SEPARATOR MOVLW   LTR_SEPARATOR   ; A separator is the small inverted 'L-shape' in Mode 1
+01AD   213E           00698     CALL  WRITE_CHAR
+01AE   0008           00699     RETURN
+                      00700 
+01AF   3030           00701 PRINT_0 MOVLW   LTR_0
+01B0   213E           00702         CALL WRITE_CHAR
+01B1   0008           00703         RETURN  
+                      00704 
+01B2   3031           00705 PRINT_1 MOVLW   LTR_1
+01B3   213E           00706         CALL WRITE_CHAR
+01B4   0008           00707         RETURN
+                      00708 
+01B5   3032           00709 PRINT_2 MOVLW   LTR_2
+01B6   213E           00710         CALL WRITE_CHAR
+01B7   0008           00711         RETURN
+                      00712         
+01B8   3033           00713 PRINT_3 MOVLW   LTR_3
+01B9   213E           00714         CALL WRITE_CHAR
+01BA   0008           00715         RETURN
+                      00716 
+                      00717 ; PRINT_DOUBLE_DIGITS: This is a function that prints a binary number as a potentially 2-digit number on
+                             the LCD.
+                      00718 ; Note that the numbers will never exceed 19. i.e. the tens digit, if it exists, is always 1
+                      00719 ; The number to print is expected to be in the W register.
+01BB                  00720 PRINT_DOUBLE_DIGITS     
+01BB   0095           00721         MOVWF   TMP
+01BC   300A           00722         MOVLW   d'10'
+01BD   0215           00723         SUBWF   TMP, 0
+                      00724         ; SUBWF adds the 2s complement of the content of WREG to the contents of SCORE_REG
+                      00725         ; If the result generates a carry, then the MSB is 0, i.e. result is positive
+                      00726         ; If the result doesn't generate a carry, then MSB is 1, i.e. result is negative
+01BE   1803           00727         BTFSC   STATUS, 0       
+01BF   29C6           00728         GOTO    DOUBLE_DIGITS
+01C0   3030           00729         MOVLW   LTR_0
+01C1   0715           00730         ADDWF   TMP, 0  ; If there is only one digit, load the score directly, add offset of 1, and prin
+                            t to screen
+01C2   213E           00731         CALL    WRITE_CHAR
+01C3   30A0           00732         MOVLW   LTR_SPACE        ; Clear the ones character
+01C4   213E           00733         CALL WRITE_CHAR
+01C5   0008           00734         RETURN
+                      00735 
+01C6   21B2           00736 DOUBLE_DIGITS   CALL    PRINT_1 ; If there are two digits, print 1 followed by the number offsetted from
+                             0 by (score-10)
+01C7   300A           00737         MOVLW   d'10'
+01C8   0295           00738         SUBWF   TMP, 1
+01C9   3030           00739         MOVLW   LTR_0
+01CA   0715           00740         ADDWF   TMP, 0
+01CB   213E           00741         CALL    WRITE_CHAR
+01CC   0008           00742         RETURN
+                      00743 
+                      00744 
+                      00745 ; PRINT_SCORE: Prints the score as a double digit to the screen, this assumes that the score is in SCORE
+                            _REG.
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 16
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+01CD   301E           00746 PRINT_SCORE     MOVLW   b'00011110'
+01CE   0092           00747         MOVWF   CURSOR_POS
+01CF   0838           00748         MOVF    SCORE_REG, 0
+01D0   21BB           00749         CALL    PRINT_DOUBLE_DIGITS
+01D1   0008           00750         RETURN
+                      00751         
+                      00752 ; ***********************************************************************   INTERRUPTS      ************
+                            **********************************************************
+                      00753 
+                      00754 ; Handle the Button related interrupts, and check which button is pressed within the interrupt.
+01D2   22F8           00755 RB4_INT CALL    DELAYFMS ;  Debounce
+01D3   1E06           00756         BTFSS   PORTB,LEFT_BTN
+01D4   21F5           00757         CALL    HANDLE_LEFT
+                      00758         
+01D5   1E86           00759         BTFSS   PORTB,RIGHT_BTN
+01D6   2205           00760         CALL    HANDLE_RIGHT
+                      00761         
+01D7   1F06           00762         BTFSS   PORTB,UP_DOWN_BTN
+01D8   2245           00763         CALL    HANDLE_UP_DOWN
+                      00764         
+01D9   1F86           00765         BTFSS   PORTB,CONFIRM_BTN
+01DA   2215           00766         CALL    HANDLE_CONFIRM
+                      00767         
+01DB   100B           00768         BCF INTCON, 0  ; Make sure to reset the flag.
+01DC   0009           00769         RETFIE
+                      00770         
+                      00771 
+01DD   110B           00772 TMR0_INT        BCF     INTCON, 2 ; Clear the TMR0 interrupt flag                       
+01DE   0B99           00773         DECFSZ  COUNT10,1
+01DF   0009           00774         RETFIE
+01E0   3098           00775         MOVLW   d'152'
+01E1   0099           00776         MOVWF   COUNT10 ; Set the counter back to its original value
+01E2   039A           00777         DECF    NUMBER_OF_TENS_OF_SECONDS,1
+01E3   0812           00778         MOVFW   CURSOR_POS
+01E4   0095           00779         MOVWF   TMP  ;TMP stores the initial position of the cursor 
+01E5   300D           00780         MOVLW   d'13'
+01E6   0092           00781         MOVWF   CURSOR_POS
+01E7   3030           00782         MOVLW   b'00110000'     ;bias of zero
+01E8   071A           00783         ADDWF   NUMBER_OF_TENS_OF_SECONDS,0     
+01E9   213E           00784         CALL    WRITE_CHAR
+01EA   0815           00785         MOVFW   TMP
+01EB   0092           00786         MOVWF   CURSOR_POS      ;Return the cursor to its position before the interrupt
+01EC   2160           00787         CALL    MOVE_CURSOR
+01ED   21EF           00788         CALL    CHECK_IF_TIMER_IS_ZERO
+01EE   0009           00789         RETFIE  
+                      00790         
+                      00791 
+01EF   081A           00792 CHECK_IF_TIMER_IS_ZERO  MOVFW   NUMBER_OF_TENS_OF_SECONDS       
+01F0   1D03           00793         BTFSS   STATUS, 2
+01F1   0008           00794         RETURN
+01F2   1614           00795         BSF     FLAG_REG,4      ; Indicates that the time has finished
+01F3   138B           00796         BCF     INTCON,7 ; Make sure to reset the flag.
+01F4   0008           00797         RETURN
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 17
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00798                 
+                      00799 
+                      00800 ; **************************************************************************************        BUTTON H
+                            ANDLERS       ****************************************************************************
+                      00801 
+01F5   3000           00802 HANDLE_LEFT     MOVLW   b'00000000'
+01F6   0614           00803         XORWF   FLAG_REG, 0     ; Check if you are in the Main Menu (i.e. Check if the last 2 bits of th
+                            e FLAG_REG are 0s)
+01F7   1903           00804         BTFSC   STATUS, 2
+01F8   0008           00805         RETURN;GOTO     MOVE_AST_LEFT
+01F9   29FA           00806         GOTO    IN_GAME_LEFT
+                      00807 
+01FA   300F           00808 IN_GAME_LEFT    MOVLW   b'00001111'     ; Check if you are at column 0, if you are then buzz
+01FB   0512           00809         ANDWF   CURSOR_POS, 0   ; Mask only the last 4 bits (corresponding to col number)
+01FC   0095           00810         MOVWF   TMP                     ; Store it in a tmp register
+01FD   3000           00811         MOVLW   0                       ; Load the number zero in W
+01FE   0615           00812         XORWF   TMP, 0          ; Check if col number == 0
+01FF   1903           00813         BTFSC   STATUS, 2       ; If it's true, Buzz, otherwise, decrement the cursor position
+0200   2B08           00814         GOTO    BUZZ
+Message[305]: Using default destination of 1 (file).
+0201   0392           00815         DECF    CURSOR_POS
+0202   2160           00816         CALL    MOVE_CURSOR
+0203   2155           00817         CALL    SHOW_CURSOR
+0204   0008           00818         RETURN
+                      00819 
+0205   3000           00820 HANDLE_RIGHT    MOVLW   b'00000000'
+0206   0614           00821         XORWF   FLAG_REG, 0     ; Check if you are in the Main Menu (i.e. Check if the last 2 bits of th
+                            e FLAG_REG are 0s)
+0207   1903           00822         BTFSC   STATUS, 2
+0208   2B15           00823         GOTO    MOVE_AST_RIGHT
+0209   2A0A           00824         GOTO    IN_GAME_RIGHT
+                      00825 
+020A   300F           00826 IN_GAME_RIGHT   MOVLW   b'00001111'     ; Check if you are at column 7, if you are then buzz
+020B   0512           00827         ANDWF   CURSOR_POS, 0   ; Mask only the last 4 bits (corresponding to col number)
+020C   0095           00828         MOVWF   TMP
+020D   3005           00829         MOVLW   d'5'
+020E   0615           00830         XORWF   TMP, 0
+020F   1903           00831         BTFSC   STATUS, 2
+0210   2B08           00832         GOTO    BUZZ
+Message[305]: Using default destination of 1 (file).
+0211   0A92           00833         INCF    CURSOR_POS
+0212   2160           00834         CALL    MOVE_CURSOR
+0213   2155           00835         CALL    SHOW_CURSOR
+0214   0008           00836         RETURN
+                      00837 
+                      00838 
+0215                  00839 HANDLE_CONFIRM  ; Unless you're in the Main Menu, toggle the value of the CONFIRM_STATUS flag (Bit 2 on 
+                            FLAG_REG) and reveal the character underneath, otherwise go into desired mode.
+0215   3000           00840         MOVLW   b'00000000'
+0216   0614           00841         XORWF   FLAG_REG, 0     ; Check if you are in the Main Menu (i.e. Check if the last 2 bits of th
+                            e FLAG_REG are 0s)
+0217   1903           00842         BTFSC   STATUS, 2
+0218   2A36           00843         GOTO    MAIN_MENU_CONFIRMATION
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 18
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00844         
+0219   302A           00845         MOVLW   d'42'   ; Load Bias
+021A   0712           00846         ADDWF   CURSOR_POS, 0   ; Add Bias
+021B   0084           00847         MOVWF   FSR     ;   Move the register number into FSR
+021C   0800           00848         MOVF    INDF, 0 ; Obtain Contents (which should be an encoded CHAR_CODE + flag)
+                      00849         
+021D   0095           00850         MOVWF   TMP     ; TMP has contents of the selected cell
+021E   1B95           00851         BTFSC   TMP, 7 ; Last bit is used as flag to determine if the card is open.
+021F   2B08           00852         GOTO    BUZZ
+0220   1780           00853         BSF     INDF, 7
+                      00854         
+                      00855 ; Reveal the card
+0221   1D14           00856         BTFSS   FLAG_REG, 2 ; Load it into either CARD1 or CARD2 depending on if it's the first or secon
+                            d card opened
+0222   00B0           00857         MOVWF   CARD1
+0223   1914           00858         BTFSC   FLAG_REG, 2
+0224   00B1           00859         MOVWF   CARD2
+0225   0095           00860         MOVWF   TMP             ; Store char_code in temporary reg
+0226   3007           00861         MOVLW   b'00000111'
+0227   0595           00862         ANDWF   TMP, 1
+0228   3041           00863         MOVLW   b'01000001'             ; Add bias equal to 'A'.
+0229   0715           00864         ADDWF   TMP, 0
+022A   213E           00865         CALL    WRITE_CHAR  ;   Write it to the character to the LCD.
+Message[305]: Using default destination of 1 (file).
+022B   0392           00866         DECF    CURSOR_POS
+022C   0812           00867         MOVF    CURSOR_POS, 0
+022D   1D14           00868         BTFSS   FLAG_REG, 2 ; Load it into either CARD1 or CARD2 depending on if it's the first or secon
+                            d card opened
+022E   00B9           00869         MOVWF   CELL_ADDRESS
+                      00870 
+022F   1700           00871         BSF     INDF, 6 ; Bit 6 is to be used to determine if the card has ever been opened before.
+                      00872                                 ; Set this flag just after revealing the card.
+                      00873 
+0230   1914           00874         BTFSC   FLAG_REG, 2     ; If CONFIRM_STATUS is 0, i.e. the user hasn't yet selected a card, reve
+                            al the first card
+0231   224E           00875         CALL    CHECK_MODE
+0232   3004           00876         MOVLW   b'00000100'     ; Toggle the 3rd bit of the CONFIRM_STATUS register
+0233   0694           00877         XORWF   FLAG_REG, 1
+0234   216B           00878         CALL    RESET_CURSOR
+0235   0008           00879         RETURN
+                      00880 
+0236   3007           00881 MAIN_MENU_CONFIRMATION  MOVLW   b'00000111'; Check if the Mode selected is Mode 1(i.e. cursor is at pos 
+                            6)
+0237   0612           00882         XORWF   CURSOR_POS, 0
+0238   1D03           00883         BTFSS   STATUS, 2
+0239   2A3C           00884         GOTO    SKIP_MODE1_CONFIRMATION
+023A   1414           00885         BSF             FLAG_REG, 0
+023B   0008           00886         RETURN
+023C   300A           00887 SKIP_MODE1_CONFIRMATION MOVLW   b'00001010'; Check if the Mode selected is Mode 2(i.e. cursor is at pos 
+                            9)
+023D   0612           00888         XORWF   CURSOR_POS, 0
+023E   1D03           00889         BTFSS   STATUS, 2
+023F   2A42           00890         GOTO    SKIP_MODE2_CONFIRMATION
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 19
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0240   1494           00891         BSF             FLAG_REG, 1
+0241   0008           00892         RETURN
+0242   1414           00893 SKIP_MODE2_CONFIRMATION BSF     FLAG_REG, 0     ; Otherwise, Mode is 3 select so set the first two bits 
+                            of the FLAG_REG
+0243   1494           00894         BSF             FLAG_REG, 1
+0244   0008           00895         RETURN
+                      00896 
+                      00897 
+0245                  00898 HANDLE_UP_DOWN  ; Unless you're in the Main Menu, toggle the row that the cursor is at
+0245   3000           00899         MOVLW   b'00000000'
+0246   0614           00900         XORWF   FLAG_REG, 0     ; Check if you are in the Main Menu (i.e. Check if the last 2 bits of th
+                            e FLAG_REG are 0s)
+0247   1903           00901         BTFSC   STATUS, 2
+0248   0008           00902         RETURN
+0249   3010           00903         MOVLW   b'00010000'
+024A   0692           00904         XORWF   CURSOR_POS, 1
+024B   2160           00905         CALL    MOVE_CURSOR
+024C   2155           00906         CALL    SHOW_CURSOR
+024D   0008           00907 SKIP_HANDLE_UP_DOWN  RETURN     
+                      00908 
+                      00909 ; ***********************************************************************       GAME MECHANICS       ***
+                            *******************************************************************
+024E                  00910 CHECK_MODE 
+024E   3003           00911         MOVLW   b'00000011' ; Mask the first two bits
+024F   0514           00912         ANDWF   FLAG_REG, 0
+0250   0095           00913         MOVWF   TMP     ; Store in a temporary register
+0251   3001           00914         MOVLW   1               ; Load the number one in W
+0252   0615           00915         XORWF   TMP, 0  ; Check if the user selected Mode 1
+0253   1903           00916         BTFSC   STATUS, 2
+0254   2A5E           00917         GOTO    CHECK_MATCH_MODE1
+0255   3002           00918         MOVLW   2               ; Load the number two in W
+0256   0615           00919         XORWF   TMP, 0  ; Check if the user selected Mode 2
+0257   1903           00920         BTFSC   STATUS, 2
+0258   2A62           00921         GOTO    CHECK_MATCH_MODE2
+0259   3003           00922         MOVLW   3               ; Load the number three in W
+025A   0615           00923         XORWF   TMP, 0  ; Check if the user selected Mode 3
+025B   1903           00924         BTFSC   STATUS, 2
+025C   2A66           00925         GOTO    CHECK_MATCH_MODE3
+025D   0008           00926         RETURN
+                      00927         
+025E                  00928 CHECK_MATCH_MODE1       ; Compare CARD1 and CARD2, if they match, then perform the action of the corresp
+                            onding game
+025E   226A           00929         CALL    CHECK_MATCH
+025F   1903           00930         BTFSC   STATUS, 2
+0260   2A70           00931         GOTO    MATCH_MODE1
+0261   2A75           00932         GOTO    NO_MATCH_MODE1
+                      00933 
+0262                  00934 CHECK_MATCH_MODE2
+0262   226A           00935         CALL    CHECK_MATCH
+0263   1903           00936         BTFSC   STATUS, 2
+0264   2A92           00937         GOTO    MATCH_MODE2
+0265   2A98           00938         GOTO    NO_MATCH_MODE2
+                      00939 
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 20
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0266                  00940 CHECK_MATCH_MODE3
+0266   226A           00941         CALL    CHECK_MATCH
+0267   1903           00942         BTFSC   STATUS, 2
+0268   2A9E           00943         GOTO    MATCH_MODE3
+0269   2AAF           00944         GOTO    NO_MATCH_MODE3
+                      00945 
+                      00946 
+                      00947 ; Checks if CARD1 and CARD2 match, bit 2 on STATUS should be used as the condition
+026A   0831           00948 CHECK_MATCH             MOVF    CARD2,  0
+026B   0630           00949         XORWF   CARD1, 0
+026C   0095           00950         MOVWF   TMP
+026D   3007           00951         MOVLW   b'00000111'             ; When checking for a match, only the last 3 bits are relevant
+                      00952                                                         ; the other bits are flags which are irrelevant 
+                            here.
+026E   0515           00953         ANDWF   TMP, 0
+026F   0008           00954         RETURN
+                      00955 
+                      00956 ; If the cards match in Mode 1, then create a buzz sound and decrement the remaining number of unmatched
+                             cards. If there are none left, then the game is over so set the GAME_OVER flag.
+0270   2308           00957 MATCH_MODE1             CALL    BUZZ
+0271   0BB5           00958         DECFSZ  NUM_LEFT, 1
+0272   0008           00959         RETURN
+0273   1594           00960         BSF FLAG_REG, 3
+0274   0008           00961         RETURN
+                      00962 
+                      00963 ; If the cards don't match in Mode 1, then increment the weakness and hide the cards.
+0275                  00964 NO_MATCH_MODE1
+0275   1506           00965         BSF     PORTB, 2
+0276   22E0           00966         CALL    DELAYS
+                      00967         
+0277   22C2           00968         CALL    HIDE_OPEN_CARDS
+                      00969         
+0278   1106           00970         BCF     PORTB, 2
+                      00971         ;   Check if weakness is 10, if it is, don't bother incrementing, as maximum weakness has been r
+                            eached
+0279   300B           00972         MOVLW   d'11'
+027A   0632           00973         XORWF   WEAKNESS, 0
+027B   1903           00974         BTFSC   STATUS, 2
+027C   0008           00975         RETURN
+                      00976         
+                      00977         
+                      00978         ; Check if the weakness has reached 8 (about to be 9 after increment), i.e. the player should be
+                             shown a message "WEAK", and set the flag accordingly.
+027D   3008           00979         MOVLW   d'8'
+027E   0632           00980         XORWF   WEAKNESS, 0
+027F   1903           00981         BTFSC   STATUS, 2
+0280   1694           00982         BSF FLAG_REG, 5
+                      00983         
+                      00984         
+                      00985         ; Check if the weakness has reached 4 (about to be 5 after increment), i.e. the player should be
+                             shown a message "AVG", and set the flag accordingly.
+0281   3004           00986         MOVLW   d'4'
+0282   0632           00987         XORWF   WEAKNESS, 0
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 21
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0283   1903           00988         BTFSC   STATUS, 2
+0284   1614           00989         BSF FLAG_REG, 4
+                      00990         
+Message[305]: Using default destination of 1 (file).
+0285   0AB2           00991         INCF    WEAKNESS    ; Increment the weakness (or number of misses)
+0286   1C32           00992         BTFSS   WEAKNESS, 0 ; We will update the scoreboard once every two times, for convenience, updat
+                            e every time the LSB is 0
+0287   0008           00993         RETURN
+                      00994         
+                      00995 
+0288   3008           00996         MOVLW   b'00001000' 
+0289   0092           00997         MOVWF   CURSOR_POS  ; Set the cursor position initially to 8, we will add some offset to this de
+                            pending on our weakness level
+028A   3001           00998         MOVLW   1   ; We will calculate the offset based on the following algorithm: Add 1 to the weakne
+                            ss and store the result in a temporary variable. Shift the temporary variable to get the offset.
+028B   0732           00999         ADDWF   WEAKNESS, 0
+028C   0095           01000         MOVWF   TMP
+028D   0C15           01001         RRF TMP, 0
+028E   0792           01002         ADDWF   CURSOR_POS, 1
+028F   21A9           01003         CALL    PRINT_SHADE
+0290   216B           01004         CALL    RESET_CURSOR
+0291   0008           01005         RETURN
+                      01006         
+                      01007         
+0292                  01008 MATCH_MODE2
+0292   2308           01009         CALL    BUZZ
+0293   0AB7           01010         INCF    NUM_CORRECT,1
+0294   0BB5           01011         DECFSZ  NUM_LEFT, 1
+0295   0008           01012         RETURN
+0296   1594           01013         BSF FLAG_REG, 3
+0297   0008           01014         RETURN
+0298                  01015 NO_MATCH_MODE2
+0298   1506           01016         BSF     PORTB, 2
+0299   22E0           01017         CALL    DELAYS
+                      01018                 
+029A   22C2           01019         CALL    HIDE_OPEN_CARDS
+                      01020 
+029B   1106           01021         BCF     PORTB, 2
+029C   0392           01022         DECF    CURSOR_POS,1
+029D   0008           01023         RETURN
+                      01024         
+029E                  01025 MATCH_MODE3     
+Message[305]: Using default destination of 1 (file).
+029E   0AB7           01026         INCF    NUM_CORRECT
+Message[305]: Using default destination of 1 (file).
+029F   0AB8           01027         INCF    SCORE_REG
+02A0   1903           01028         BTFSC   STATUS, 2
+02A1   1594           01029         BSF     FLAG_REG, 3
+                      01030         
+02A2   300D           01031         MOVLW   b'00001101'     ; Move cursor to the position right after the plus sign
+02A3   0092           01032         MOVWF   CURSOR_POS
+02A4   0837           01033         MOVF    NUM_CORRECT, 0
+02A5   21BB           01034         CALL    PRINT_DOUBLE_DIGITS             ; Print the number of correct guesses as a potentially d
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 22
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                            ouble digit number
+                      01035 
+02A6   301E           01036         MOVLW   b'00011110'                     ; Print the updated score
+02A7   0092           01037         MOVWF   CURSOR_POS
+02A8   0838           01038         MOVF    SCORE_REG, 0
+02A9   21BB           01039         CALL    PRINT_DOUBLE_DIGITS
+                      01040 
+                      01041 
+02AA   3006           01042         MOVLW   d'6'
+02AB   0637           01043         XORWF   NUM_CORRECT, 0
+02AC   1903           01044         BTFSC   STATUS, 2       ; End the game if there are 6 successes.
+02AD   2AD7           01045         GOTO    MODE3_SUCCESS   ; End the game, performing necessary actions for a win
+02AE   0008           01046         RETURN
+                      01047 
+02AF                  01048 NO_MATCH_MODE3
+02AF   22E0           01049         CALL    DELAYS
+02B0   1B30           01050         BTFSC   CARD1, 6
+02B1   22D1           01051         CALL    PENALTY
+                      01052 
+02B2   1B31           01053         BTFSC   CARD2, 6
+02B3   22D1           01054         CALL    PENALTY
+                      01055 
+02B4   22C2           01056         CALL    HIDE_OPEN_CARDS 
+                      01057 
+02B5   3009           01058         MOVLW   b'00001001'     ; Move cursor to the position right after the negative sign
+02B6   0092           01059         MOVWF   CURSOR_POS
+02B7   0836           01060         MOVF    NUM_ERRORS, 0
+02B8   21BB           01061         CALL    PRINT_DOUBLE_DIGITS             ; Print the number of errors as a potentially double dig
+                            it number
+                      01062 
+02B9   301E           01063         MOVLW   b'00011110'             ; Print the updated score
+02BA   0092           01064         MOVWF   CURSOR_POS
+02BB   0838           01065         MOVF    SCORE_REG, 0
+02BC   21BB           01066         CALL    PRINT_DOUBLE_DIGITS
+                      01067 
+02BD   300D           01068         MOVLW   d'13'
+02BE   0236           01069         SUBWF   NUM_ERRORS, 0
+02BF   1803           01070         BTFSC   STATUS, 0       ; Check if NUM_ERRORS > 12
+02C0   2ADC           01071         GOTO    MODE3_FAIL      ; End the game, performing necessary actions for a loss
+                      01072 
+02C1   0008           01073         RETURN
+                      01074 
+02C2   302A           01075 HIDE_OPEN_CARDS         MOVLW   d'42'   ; Load Bias
+02C3   0712           01076         ADDWF   CURSOR_POS, 0   ; Add Bias
+02C4   0084           01077         MOVWF   FSR
+02C5   1380           01078         BCF     INDF, 7
+                      01079         
+02C6   30DB           01080         MOVLW   LTR_BOX
+02C7   213E           01081     CALL  WRITE_CHAR
+                      01082 
+02C8   0839           01083         MOVF    CELL_ADDRESS, 0
+02C9   0092           01084         MOVWF   CURSOR_POS
+02CA   302A           01085         MOVLW   d'42'   ; Load Bias
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 23
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+02CB   0712           01086         ADDWF   CURSOR_POS, 0   ; Add Bias
+02CC   0084           01087         MOVWF   FSR
+02CD   1380           01088         BCF     INDF, 7
+                      01089         
+02CE   30DB           01090         MOVLW   LTR_BOX
+02CF   213E           01091     CALL  WRITE_CHAR
+                      01092 
+02D0   0008           01093         RETURN
+                      01094 
+                      01095 ; Decrement the SCORE_REG if the card has been opened before
+Message[305]: Using default destination of 1 (file).
+02D1   0AB6           01096 PENALTY INCF    NUM_ERRORS
+02D2   3000           01097         MOVLW   0
+Message[305]: Using default destination of 1 (file).
+02D3   06B8           01098         XORWF   SCORE_REG
+02D4   1D03           01099         BTFSS   STATUS, 2
+Message[305]: Using default destination of 1 (file).
+02D5   03B8           01100         DECF    SCORE_REG
+02D6   0008           01101         RETURN
+                      01102 
+                      01103 ; If the user has finished Mode 3 successfully, then show the LED pattern and end the game. (Set the GAM
+                            E_OVER flag)
+02D7   3003           01104 MODE3_SUCCESS   MOVLW   d'3'
+02D8   008C           01105         MOVWF   COUNT1
+02D9   230C           01106         CALL    PATTERN_LOOP
+02DA   1594           01107         BSF             FLAG_REG, 3     ; If this is the case, then game is over.
+02DB   0008           01108         RETURN
+                      01109 
+                      01110 ; If the user has finished Mode 3 unsuccessfully, then make the buzzer sound and end the game. (Set the 
+                            GAME_OVER flag)
+02DC                  01111 MODE3_FAIL      
+02DC   2308           01112         CALL    BUZZ
+02DD   22EC           01113         CALL    DELAY3S
+02DE   1594           01114         BSF             FLAG_REG, 3     ; If this is the case, then game is over.
+02DF   0008           01115         RETURN
+                      01116 
+                      01117 ; ***********************************************************************       DELAYS      ************
+                            **********************************************************
+                      01118 
+                      01119 ; DELAYS: Causes a 1s delay, uses registers COUNT4, COUNT5 & COUNT6.
+                      01120         
+02E0   3000           01121 DELAYS  MOVLW   H'00'
+02E1   0091           01122         MOVWF   COUNT6
+02E2   0090           01123         MOVWF   COUNT5
+02E3   3005           01124         MOVLW   0x5
+02E4   008F           01125         MOVWF   COUNT4
+                      01126         
+02E5   0F91           01127 LOOP    INCFSZ  COUNT6,F
+02E6   2AE5           01128         GOTO    LOOP
+02E7   0F90           01129         INCFSZ  COUNT5,F
+02E8   2AE5           01130         GOTO    LOOP
+02E9   0B8F           01131         DECFSZ  COUNT4,F
+02EA   2AE5           01132         GOTO    LOOP
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 24
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+02EB   0008           01133         RETURN
+                      01134         
+                      01135 ; DELAYS: Causes a 3s delay, uses registers COUNT7, COUNT8 & COUNT9.
+                      01136     
+02EC   3000           01137 DELAY3S MOVLW   H'00'
+02ED   0098           01138         MOVWF   COUNT9
+02EE   0097           01139         MOVWF   COUNT8
+02EF   3010           01140         MOVLW   H'10'
+02F0   0096           01141         MOVWF   COUNT7
+                      01142         
+02F1   0F98           01143 LOOP3S  INCFSZ  COUNT9,F
+02F2   2AF1           01144         GOTO    LOOP3S
+02F3   0F97           01145         INCFSZ  COUNT8,F
+02F4   2AF1           01146         GOTO    LOOP3S
+02F5   0B96           01147         DECFSZ  COUNT7,F
+02F6   2AF1           01148         GOTO    LOOP3S
+                      01149         
+02F7   0008           01150         RETURN
+                      01151 
+                      01152 ; DELAYFMS: Causes a 40 ms delay, uses register COUNT1.
+                      01153         
+02F8   3025           01154 DELAYFMS        MOVLW   d'37'
+02F9   008C           01155         MOVWF   COUNT1
+02FA   22FE           01156 LOOP3   CALL    DELAYMS
+02FB   0B8C           01157         DECFSZ  COUNT1,F
+02FC   2AFA           01158         GOTO    LOOP3
+02FD   0008           01159         RETURN
+                      01160 
+                      01161 ; DELAYMS: Causes a 1 ms delay, uses registers COUNT2 & COUNT 3.
+                      01162         
+02FE   3000           01163 DELAYMS MOVLW d'0'          
+02FF   008D           01164         MOVWF   COUNT2
+0300   304C           01165         MOVLW   d'76'
+0301   008E           01166         MOVWF   COUNT3
+0302   0F8D           01167 LOOP1   INCFSZ  COUNT2,F
+0303   2B02           01168         GOTO    LOOP1
+0304   0000           01169 LOOP2   NOP     
+0305   0B8E           01170         DECFSZ  COUNT3,F
+0306   2B04           01171         GOTO LOOP2
+0307   0008           01172         RETURN
+                      01173 
+                      01174 ; ***********************************************************************       MISC        ************
+                            **********************************************************
+                      01175 ; Make a buzzer sound for 1 second.
+0308   1406           01176 BUZZ    BSF     PORTB, 0
+0309   22E0           01177         CALL    DELAYS
+030A   1006           01178         BCF     PORTB, 0
+030B   0008           01179         RETURN
+                      01180 
+                      01181 ; Make the LEDs light in a certain pattern for a certain number of iterations.
+                      01182 ; Note: the iterations must be specified in COUNT1 before calling PATTERN_LOOP.
+030C                  01183 PATTERN_LOOP
+030C   1586           01184         BSF     PORTB, 3
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 25
+Memory Game
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+030D   1106           01185         BCF     PORTB, 2
+030E   22E0           01186         CALL    DELAYS
+030F   1506           01187         BSF     PORTB, 2
+0310   1186           01188         BCF     PORTB, 3
+0311   22E0           01189         CALL    DELAYS
+Message[305]: Using default destination of 1 (file).
+0312   0B8C           01190         DECFSZ  COUNT1
+0313   2B0C           01191         GOTO    PATTERN_LOOP
+0314   0008           01192         RETURN
+                      01193 
+                      01194 ; Move the position of the asterisk in the Main Menu.
+                      01195 ; Possible cursor positions: 0110 1001 1100     
+0315   213A           01196 MOVE_AST_RIGHT CALL DELETE_BEFORE 
+0316   1D92           01197         BTFSS CURSOR_POS,3  ; SKIP IF BIT3=1
+0317   2B1D           01198         GOTO R1 ; BIT3 is 0
+0318   1D12           01199         BTFSS CURSOR_POS,2
+0319   2B1D           01200         GOTO R1 ; BIT2 is 0
+                      01201 
+031A   3006           01202         MOVLW b'00000110' ;  ROTATE
+031B   0092           01203         MOVWF CURSOR_POS 
+031C   2B1F           01204         GOTO EXIT_RIGHT
+                      01205 
+031D   3002           01206 R1      MOVLW d'2'
+031E   0792           01207         ADDWF CURSOR_POS,1
+                      01208 
+031F   21A0           01209 EXIT_RIGHT      CALL PRINT_ASTERISK 
+0320   0008           01210         RETURN
+                      01211 
+                      01212         END
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 26
+Memory Game
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+BUZZ                              00000308
+C                                 00000000
+CARD1                             00000030
+CARD2                             00000031
+CELL_11                           0000002A
+CELL_12                           0000002B
+CELL_13                           0000002C
+CELL_14                           0000002D
+CELL_15                           0000002E
+CELL_16                           0000002F
+CELL_21                           0000003A
+CELL_22                           0000003B
+CELL_23                           0000003C
+CELL_24                           0000003D
+CELL_25                           0000003E
+CELL_26                           0000003F
+CELL_ADDRESS                      00000039
+CHAR_CODE                         00000013
+CHECK_IF_TIMER_IS_ZERO            000001EF
+CHECK_MATCH                       0000026A
+CHECK_MATCH_MODE1                 0000025E
+CHECK_MATCH_MODE2                 00000262
+CHECK_MATCH_MODE3                 00000266
+CHECK_MODE                        0000024E
+CLEAR_SCREEN                      0000012D
+CONFIRM_BTN                       00000007
+COUNT1                            0000000C
+COUNT10                           00000019
+COUNT2                            0000000D
+COUNT3                            0000000E
+COUNT4                            0000000F
+COUNT5                            00000010
+COUNT6                            00000011
+COUNT7                            00000016
+COUNT8                            00000017
+COUNT9                            00000018
+CURSOR_POS                        00000012
+DC                                00000001
+DELAY3S                           000002EC
+DELAYFMS                          000002F8
+DELAYMS                           000002FE
+DELAYS                            000002E0
+DELETE_BEFORE                     0000013A
+DOUBLE_DIGITS                     000001C6
+EEADR                             00000009
+EECON1                            00000088
+EECON2                            00000089
+EEDATA                            00000008
+EEIE                              00000006
+EEIF                              00000004
+ET                                00000124
+EXIT_RIGHT                        0000031F
+F                                 00000001
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 27
+Memory Game
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+FLAG_REG                          00000014
+FSR                               00000004
+GIE                               00000007
+HANDLE_CONFIRM                    00000215
+HANDLE_LEFT                       000001F5
+HANDLE_RIGHT                      00000205
+HANDLE_UP_DOWN                    00000245
+HIDE_CURSOR                       00000134
+HIDE_OPEN_CARDS                   000002C2
+HIDE_TABLE                        000000EE
+INDF                              00000000
+INF                               00000056
+INIT                              0000000F
+INTCON                            0000000B
+INTE                              00000004
+INTEDG                            00000006
+INTF                              00000001
+IN_GAME_LEFT                      000001FA
+IN_GAME_RIGHT                     0000020A
+IRP                               00000007
+LEFT_BTN                          00000004
+LOOP                              000002E5
+LOOP1                             00000302
+LOOP2                             00000304
+LOOP3                             000002FA
+LOOP3S                            000002F1
+LOOP5MS                           00000129
+LOOP_M1                           00000065
+LOOP_M2                           000000A4
+LOOP_M3                           000000CB
+LTR_0                             00000030
+LTR_1                             00000031
+LTR_2                             00000032
+LTR_3                             00000033
+LTR_4                             00000034
+LTR_5                             00000035
+LTR_6                             00000036
+LTR_7                             00000037
+LTR_8                             00000038
+LTR_9                             00000039
+LTR_A                             00000041
+LTR_ASTERISK                      0000002A
+LTR_B                             00000042
+LTR_BOX                           000000DB
+LTR_C                             00000043
+LTR_D                             00000044
+LTR_E                             00000045
+LTR_F                             00000046
+LTR_G                             00000047
+LTR_H                             00000048
+LTR_I                             00000049
+LTR_J                             0000004A
+LTR_K                             0000004B
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 28
+Memory Game
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+LTR_L                             0000004C
+LTR_M                             0000004D
+LTR_MINUS                         0000002D
+LTR_N                             0000004E
+LTR_O                             0000004F
+LTR_P                             00000050
+LTR_PLUS                          0000002B
+LTR_Q                             00000051
+LTR_R                             00000052
+LTR_S                             00000053
+LTR_SEPARATOR                     000000A3
+LTR_SHADE                         000000FF
+LTR_SPACE                         000000A0
+LTR_T                             00000054
+LTR_U                             00000055
+LTR_V                             00000056
+LTR_W                             00000057
+LTR_X                             00000058
+LTR_Y                             00000059
+LTR_Z                             0000005A
+MAIN                              00000008
+MAIN_MENU                         0000003E
+MAIN_MENU_CONFIRMATION            00000236
+MATCH_MODE1                       00000270
+MATCH_MODE2                       00000292
+MATCH_MODE3                       0000029E
+MODE1                             00000062
+MODE1_AVG                         00000077
+MODE1_OR_3                        0000005F
+MODE1_OR_INF                      0000005C
+MODE1_SCOREBOARD                  000000FF
+MODE1_SUPER                       0000007E
+MODE1_WEAK                        0000006F
+MODE2                             00000088
+MODE2_OR_3                        00000059
+MODE2_RESULT                      000000A9
+MODE3                             000000C6
+MODE3_FAIL                        000002DC
+MODE3_SCOREBOARD                  0000010C
+MODE3_SUCCESS                     000002D7
+MOVE_AST_RIGHT                    00000315
+MOVE_CURSOR                       00000160
+NOT_PD                            00000003
+NOT_RBPU                          00000007
+NOT_TO                            00000004
+NO_MATCH_MODE1                    00000275
+NO_MATCH_MODE2                    00000298
+NO_MATCH_MODE3                    000002AF
+NUMBER_OF_TENS_OF_SECONDS         0000001A
+NUM_CORRECT                       00000037
+NUM_ERRORS                        00000036
+NUM_LEFT                          00000035
+ONE                               000000C2
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 29
+Memory Game
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+OPTION_REG                        00000081
+PATTERN_LOOP                      0000030C
+PCL                               00000002
+PCLATH                            0000000A
+PENALTY                           000002D1
+POPULATE_TABLE                    000000D5
+PORTA                             00000005
+PORTB                             00000006
+PRINT_0                           000001AF
+PRINT_1                           000001B2
+PRINT_2                           000001B5
+PRINT_3                           000001B8
+PRINT_A                           00000170
+PRINT_ASTERISK                    000001A0
+PRINT_BOX                         000001A6
+PRINT_C                           00000173
+PRINT_D                           00000176
+PRINT_DOUBLE_DIGITS               000001BB
+PRINT_E                           00000179
+PRINT_G                           0000017C
+PRINT_K                           0000017F
+PRINT_M                           00000182
+PRINT_O                           00000185
+PRINT_P                           00000188
+PRINT_R                           0000018B
+PRINT_S                           00000191
+PRINT_SCORE                       000001CD
+PRINT_SEPARATOR                   000001AC
+PRINT_SHADE                       000001A9
+PRINT_SPACE                       000001A3
+PRINT_T                           0000018E
+PRINT_U                           00000194
+PRINT_V                           00000197
+PRINT_W                           0000019A
+PRINT_Y                           0000019D
+PS0                               00000000
+PS1                               00000001
+PS2                               00000002
+PSA                               00000003
+R1                                0000031D
+RB4_INT                           000001D2
+RBIE                              00000003
+RBIF                              00000000
+RD                                00000000
+RESET_CURSOR                      0000016B
+RIGHT_BTN                         00000005
+RP0                               00000005
+RP1                               00000006
+SCORE                             0000001A
+SCORE_REG                         00000038
+SETUP                             000000CE
+SHOW_CURSOR                       00000155
+SKIP_HANDLE_UP_DOWN               0000024D
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 30
+Memory Game
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+SKIP_MODE1_CONFIRMATION           0000023C
+SKIP_MODE2_CONFIRMATION           00000242
+STATUS                            00000003
+T0CS                              00000005
+T0IE                              00000005
+T0IF                              00000002
+T0SE                              00000004
+TMP                               00000015
+TMR0                              00000001
+TMR0_INT                          000001DD
+TRISA                             00000085
+TRISB                             00000086
+UP_DOWN_BTN                       00000006
+W                                 00000000
+WEAKNESS                          00000032
+WELCOME_SCREEN                    0000002B
+WR                                00000001
+WREN                              00000002
+WRERR                             00000003
+WRITE_CHAR                        0000013E
+Z                                 00000002
+_CP_OFF                           00003FFF
+_CP_ON                            0000000F
+_HS_OSC                           00003FFE
+_LP_OSC                           00003FFC
+_PWRTE_OFF                        00003FFF
+_PWRTE_ON                         00003FF7
+_RC_OSC                           00003FFF
+_WDT_OFF                          00003FFB
+_WDT_ON                           00003FFF
+_XT_OSC                           00003FFD
+__16F84A                          00000001
+__DEBUG                           1
+
+
+MEMORY USAGE MAP ('X' = Used,  '-' = Unused)
+
+0000 : X---XXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0040 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0080 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+00C0 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0100 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0140 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0180 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+01C0 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0200 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+MPASM  5.35beta                          MAIN.ASM   5-14-2019  13:28:57         PAGE 31
+Memory Game
+
+MEMORY USAGE MAP ('X' = Used,  '-' = Unused)
+
+
+0240 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0280 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+02C0 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0300 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX X--------------- ----------------
+
+All other memory blocks unused.
+
+Program Memory Words Used:   798
+Program Memory Words Free:   226
+
+
+Errors   :     0
+Warnings :     0 reported,     0 suppressed
+Messages :    14 reported,     0 suppressed
+
+
